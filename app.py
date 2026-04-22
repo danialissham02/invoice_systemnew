@@ -465,7 +465,7 @@ def send_invoice(id):
                 'Content-Type': 'application/json'
             },
             json={
-                'from': 'onboarding@resend.dev',
+                'from': 'InvoiceFlow <onboarding@resend.dev>',
                 'to': [inv.client_email],
                 'subject': f'Invoice {inv.invoice_number} from {current_user.company or current_user.name}',
                 'text': f'Dear {inv.client_name},\n\nPlease find attached invoice {inv.invoice_number}.\n\nAmount Due: RM {inv.total:.2f}\nDue Date: {inv.due_date.strftime("%d %b %Y")}\n\nThank you for your business.\n\n{current_user.company or current_user.name}',
@@ -476,13 +476,13 @@ def send_invoice(id):
             }
         )
 
-        if response.status_code == 200 or response.status_code == 201:
+        if response.status_code == 200:
             if inv.status == 'Draft':
                 inv.status = 'Unpaid'
                 db.session.commit()
             flash(f'Invoice successfully sent to {inv.client_email}!', 'success')
         else:
-            flash(f'Failed to send email. Status: {response.status_code} Error: {response.text}', 'error')
+            flash(f'Failed to send email. Error: {response.text}', 'error')
 
     except Exception as e:
         flash(f'Failed to send email. Error: {str(e)}', 'error')

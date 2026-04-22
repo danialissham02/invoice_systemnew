@@ -1,114 +1,86 @@
 {% extends 'base.html' %}
-{% block title %}Dashboard — InvoiceFlow{% endblock %}
+{% block title %}Dashboard — Invoify{% endblock %}
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
 
 {% block content %}
-<div class="mb-8">
-  <h2 class="text-2xl font-bold text-gray-900">Dashboard</h2>
-  <p class="text-gray-500 text-sm mt-1">Welcome back, {{ current_user.name }}! Here's your financial overview.</p>
+<div class="mb-8 fade-up fade-up-1">
+  <h2 class="font-display font-700" style="font-size:26px;letter-spacing:-0.5px;color:var(--text);">Dashboard</h2>
+  <p style="color:var(--muted);font-size:14px;margin-top:4px;">Good to see you, <strong>{{ current_user.name }}</strong>. Here's what's happening.</p>
 </div>
 
 <!-- KPI Cards -->
-<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
-  <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-    <div class="flex items-center justify-between mb-3">
-      <span class="text-sm font-medium text-gray-500">Total Revenue</span>
-      <div class="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
-        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>
+<div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+  {% set cards = [
+    ('Total Revenue', 'RM ' ~ "%.2f"|format(total_revenue), 'From paid invoices', '#dcfce7', '#166534', 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1'),
+    ('Outstanding', 'RM ' ~ "%.2f"|format(outstanding), 'Unpaid + Overdue', '#fef9c3', '#854d0e', 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'),
+    ('Overdue', overdue_count|string, 'Past due date', '#fee2e2', '#991b1b', 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'),
+    ('Total Invoices', total_invoices|string, 'All time', '#ede9ff', '#4a2fe0', 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'),
+  ] %}
+  {% for label, value, sub, bg, color, icon in cards %}
+  <div class="card p-5 fade-up fade-up-{{ loop.index }}" style="border-radius:16px;">
+    <div class="flex items-start justify-between mb-4">
+      <div style="width:38px;height:38px;background:{{ bg }};border-radius:10px;" class="flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5" style="color:{{ color }};" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ icon }}"/></svg>
       </div>
     </div>
-    <p class="text-2xl font-bold text-gray-900">RM {{ "%.2f"|format(total_revenue) }}</p>
-    <p class="text-xs text-green-600 mt-1">From paid invoices</p>
+    <div class="font-display font-700" style="font-size:22px;letter-spacing:-0.5px;color:var(--text);">{{ value }}</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:2px;">{{ label }}</div>
+    <div style="font-size:11px;color:{{ color }};margin-top:4px;">{{ sub }}</div>
   </div>
-
-  <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-    <div class="flex items-center justify-between mb-3">
-      <span class="text-sm font-medium text-gray-500">Outstanding</span>
-      <div class="w-9 h-9 bg-yellow-100 rounded-lg flex items-center justify-center">
-        <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      </div>
-    </div>
-    <p class="text-2xl font-bold text-gray-900">RM {{ "%.2f"|format(outstanding) }}</p>
-    <p class="text-xs text-yellow-600 mt-1">Unpaid + Overdue</p>
-  </div>
-
-  <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-    <div class="flex items-center justify-between mb-3">
-      <span class="text-sm font-medium text-gray-500">Overdue</span>
-      <div class="w-9 h-9 bg-red-100 rounded-lg flex items-center justify-center">
-        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-      </div>
-    </div>
-    <p class="text-2xl font-bold text-gray-900">{{ overdue_count }}</p>
-    <p class="text-xs text-red-600 mt-1">Invoices past due</p>
-  </div>
-
-  <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-    <div class="flex items-center justify-between mb-3">
-      <span class="text-sm font-medium text-gray-500">Total Invoices</span>
-      <div class="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
-        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-      </div>
-    </div>
-    <p class="text-2xl font-bold text-gray-900">{{ total_invoices }}</p>
-    <p class="text-xs text-blue-600 mt-1">All time</p>
-  </div>
+  {% endfor %}
 </div>
 
 <!-- Charts -->
-<div class="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-8">
-  <!-- Revenue Line Chart -->
-  <div class="xl:col-span-2 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-    <h3 class="text-base font-semibold text-gray-800 mb-4">Monthly Revenue Trend (Paid)</h3>
-    <canvas id="revenueChart" height="120"></canvas>
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
+  <div class="card p-6 xl:col-span-2 fade-up fade-up-2">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <div class="font-display font-600" style="font-size:15px;">Revenue Trend</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Monthly paid invoices</div>
+      </div>
+    </div>
+    <canvas id="revenueChart" height="110"></canvas>
   </div>
 
-  <!-- Doughnut -->
-  <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-    <h3 class="text-base font-semibold text-gray-800 mb-4">Invoice Status</h3>
-    <canvas id="statusChart" height="180"></canvas>
+  <div class="card p-6 fade-up fade-up-3">
+    <div class="mb-6">
+      <div class="font-display font-600" style="font-size:15px;">Invoice Status</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Breakdown by status</div>
+    </div>
+    <canvas id="statusChart" height="160"></canvas>
   </div>
 </div>
 
 <!-- Recent Invoices -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
-  <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-    <h3 class="text-base font-semibold text-gray-800">Recent Invoices</h3>
-    <a href="{{ url_for('invoices') }}" class="text-sm text-blue-600 hover:underline">View all</a>
+<div class="card fade-up fade-up-4">
+  <div class="flex items-center justify-between px-6 py-4" style="border-bottom:1px solid var(--border);">
+    <div class="font-display font-600" style="font-size:15px;">Recent Invoices</div>
+    <a href="{{ url_for('invoices') }}" style="font-size:13px;color:var(--accent);font-weight:500;text-decoration:none;">View all →</a>
   </div>
   {% if recent_invoices %}
   <div class="overflow-x-auto">
-    <table class="w-full text-sm">
+    <table style="width:100%;font-size:13px;">
       <thead>
-        <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-100">
-          <th class="px-6 py-3">Invoice #</th>
-          <th class="px-6 py-3">Client</th>
-          <th class="px-6 py-3">Due Date</th>
-          <th class="px-6 py-3">Amount</th>
-          <th class="px-6 py-3">Status</th>
-          <th class="px-6 py-3"></th>
+        <tr style="border-bottom:1px solid var(--border);">
+          {% for col in ['Invoice #', 'Client', 'Due Date', 'Amount', 'Status', ''] %}
+          <th style="padding:12px 24px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">{{ col }}</th>
+          {% endfor %}
         </tr>
       </thead>
-      <tbody class="divide-y divide-gray-50">
+      <tbody>
         {% for inv in recent_invoices %}
-        <tr class="hover:bg-gray-50 transition">
-          <td class="px-6 py-3 font-medium text-gray-900">{{ inv.invoice_number }}</td>
-          <td class="px-6 py-3 text-gray-600">{{ inv.client_name }}</td>
-          <td class="px-6 py-3 text-gray-500">{{ inv.due_date.strftime('%d %b %Y') }}</td>
-          <td class="px-6 py-3 font-semibold">RM {{ "%.2f"|format(inv.total) }}</td>
-          <td class="px-6 py-3">
-            <span class="px-2.5 py-1 rounded-full text-xs font-medium
-              {% if inv.status == 'Paid' %}bg-green-100 text-green-700
-              {% elif inv.status == 'Overdue' %}bg-red-100 text-red-700
-              {% elif inv.status == 'Unpaid' %}bg-yellow-100 text-yellow-700
-              {% else %}bg-gray-100 text-gray-600{% endif %}">
-              {{ inv.status }}
-            </span>
+        <tr style="border-bottom:1px solid var(--border);transition:background 0.1s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+          <td style="padding:14px 24px;font-weight:600;color:var(--accent);">{{ inv.invoice_number }}</td>
+          <td style="padding:14px 24px;color:var(--text);">{{ inv.client_name }}</td>
+          <td style="padding:14px 24px;color:var(--muted);">{{ inv.due_date.strftime('%d %b %Y') }}</td>
+          <td style="padding:14px 24px;font-weight:600;">RM {{ "%.2f"|format(inv.total) }}</td>
+          <td style="padding:14px 24px;">
+            <span style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;" class="badge-{{ inv.status.lower() }}">{{ inv.status }}</span>
           </td>
-          <td class="px-6 py-3">
-            <a href="{{ url_for('view_invoice', id=inv.id) }}" class="text-blue-600 hover:underline text-xs">View</a>
+          <td style="padding:14px 24px;">
+            <a href="{{ url_for('view_invoice', id=inv.id) }}" style="font-size:12px;color:var(--accent);font-weight:500;text-decoration:none;">View →</a>
           </td>
         </tr>
         {% endfor %}
@@ -116,9 +88,9 @@
     </table>
   </div>
   {% else %}
-  <div class="px-6 py-12 text-center">
-    <p class="text-gray-400 text-sm">No invoices yet.</p>
-    <a href="{{ url_for('new_invoice') }}" class="mt-3 inline-block bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition">Create your first invoice</a>
+  <div style="padding:60px;text-align:center;">
+    <div style="color:var(--muted);font-size:14px;margin-bottom:16px;">No invoices yet</div>
+    <a href="{{ url_for('new_invoice') }}" class="btn-primary" style="display:inline-block;padding:10px 20px;font-size:13px;text-decoration:none;">Create your first invoice</a>
   </div>
   {% endif %}
 </div>
@@ -128,53 +100,50 @@
 <script>
 const statusCounts = {{ status_counts|safe }};
 
-// Revenue Line Chart — loads from API
-fetch('/api/revenue-trend')
-  .then(r => r.json())
-  .then(data => {
-    new Chart(document.getElementById('revenueChart'), {
-      type: 'line',
-      data: {
-        labels: data.length ? data.map(d => d.month) : ['No Data'],
-        datasets: [{
-          label: 'Revenue (RM)',
-          data: data.length ? data.map(d => d.revenue) : [0],
-          borderColor: 'rgba(59,130,246,1)',
-          backgroundColor: 'rgba(59,130,246,0.1)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.4,
-          pointBackgroundColor: 'rgba(59,130,246,1)',
-          pointRadius: 5,
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
-          x: { grid: { display: false } }
-        }
+fetch('/api/revenue-trend').then(r => r.json()).then(data => {
+  new Chart(document.getElementById('revenueChart'), {
+    type: 'line',
+    data: {
+      labels: data.length ? data.map(d => d.month) : ['No Data'],
+      datasets: [{
+        data: data.length ? data.map(d => d.revenue) : [0],
+        borderColor: '#6c47ff',
+        backgroundColor: 'rgba(108,71,255,0.08)',
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#6c47ff',
+        pointRadius: 4,
+        pointHoverRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f0f0f5' }, ticks: { color: '#72727a', font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { color: '#72727a', font: { size: 11 } } }
       }
-    });
+    }
   });
+});
 
-// Status Doughnut Chart
 new Chart(document.getElementById('statusChart'), {
   type: 'doughnut',
   data: {
     labels: Object.keys(statusCounts),
     datasets: [{
       data: Object.values(statusCounts),
-      backgroundColor: ['#9ca3af','#fbbf24','#34d399','#f87171'],
-      borderWidth: 0
+      backgroundColor: ['#e2e8f0', '#fde68a', '#86efac', '#fca5a5'],
+      borderWidth: 0,
+      hoverOffset: 4
     }]
   },
   options: {
     responsive: true,
-    cutout: '65%',
+    cutout: '70%',
     plugins: {
-      legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } }
+      legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 16, color: '#72727a' } }
     }
   }
 });

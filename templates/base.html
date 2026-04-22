@@ -3,79 +3,112 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}InvoiceFlow{% endblock %}</title>
+  <title>{% block title %}Invoify{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: { 50:'#eff6ff', 100:'#dbeafe', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8', 900:'#1e3a8a' }
-          }
-        }
-      }
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'DM Sans', sans-serif; }
+    .font-display { font-family: 'Syne', sans-serif; }
+    :root {
+      --accent: #6c47ff;
+      --accent-light: #ede9ff;
+      --accent-dark: #4a2fe0;
+      --surface: #f7f7fb;
+      --card: #ffffff;
+      --border: #ebebf0;
+      --text: #16161a;
+      --muted: #72727a;
     }
-  </script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>body { font-family: 'Inter', sans-serif; }</style>
+    .sidebar-link { transition: all 0.15s ease; }
+    .sidebar-link:hover { background: rgba(108,71,255,0.08); color: var(--accent); }
+    .sidebar-link.active { background: var(--accent); color: white; }
+    .sidebar-link.active svg { stroke: white; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; }
+    .btn-primary { background: var(--accent); color: white; border-radius: 10px; font-weight: 500; transition: all 0.15s; }
+    .btn-primary:hover { background: var(--accent-dark); transform: translateY(-1px); }
+    .badge-paid { background: #dcfce7; color: #166534; }
+    .badge-unpaid { background: #fef9c3; color: #854d0e; }
+    .badge-overdue { background: #fee2e2; color: #991b1b; }
+    .badge-draft { background: #f1f5f9; color: #475569; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    .fade-up { animation: fadeUp 0.4s ease forwards; }
+    .fade-up-1 { animation-delay: 0.05s; opacity: 0; }
+    .fade-up-2 { animation-delay: 0.1s; opacity: 0; }
+    .fade-up-3 { animation-delay: 0.15s; opacity: 0; }
+    .fade-up-4 { animation-delay: 0.2s; opacity: 0; }
+  </style>
   {% block head %}{% endblock %}
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body style="background: var(--surface); color: var(--text);">
 
 {% if current_user.is_authenticated %}
-<!-- Sidebar Layout -->
 <div class="flex min-h-screen">
   <!-- Sidebar -->
-  <aside class="w-64 bg-gray-900 text-white flex flex-col fixed h-full z-10">
-    <div class="px-6 py-5 border-b border-gray-700">
-      <h1 class="text-xl font-bold text-blue-400">⚡ InvoiceFlow</h1>
-      <p class="text-xs text-gray-400 mt-1">{{ current_user.company or current_user.name }}</p>
+  <aside style="width:260px; background:#16161a; flex-shrink:0;" class="fixed h-full z-10 flex flex-col">
+    <!-- Logo -->
+    <div class="px-6 py-6 border-b" style="border-color:#2a2a30;">
+      <div class="flex items-center gap-3">
+        <div style="width:36px;height:36px;background:var(--accent);border-radius:10px;" class="flex items-center justify-center flex-shrink-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <div>
+          <div class="font-display font-700 text-white" style="font-size:18px;letter-spacing:-0.3px;">Invoify</div>
+          <div style="font-size:11px;color:#72727a;">Invoice Management</div>
+        </div>
+      </div>
     </div>
-    <nav class="flex-1 px-4 py-6 space-y-1">
+
+    <!-- Nav -->
+    <nav class="flex-1 px-3 py-5 space-y-1">
+      <div style="font-size:10px;color:#4a4a52;text-transform:uppercase;letter-spacing:0.08em;padding:0 12px;margin-bottom:8px;">Menu</div>
       <a href="{{ url_for('dashboard') }}"
-         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
-                {% if request.endpoint == 'dashboard' %}bg-blue-600 text-white{% else %}text-gray-300 hover:bg-gray-800{% endif %}">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.endpoint == 'dashboard' %}active{% else %}text-gray-400{% endif %}">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
         Dashboard
       </a>
       <a href="{{ url_for('invoices') }}"
-         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
-                {% if request.endpoint in ('invoices','view_invoice','edit_invoice','new_invoice') %}bg-blue-600 text-white{% else %}text-gray-300 hover:bg-gray-800{% endif %}">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        Invoices
+         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.endpoint in ('invoices','view_invoice','edit_invoice') %}active{% else %}text-gray-400{% endif %}">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        All Invoices
       </a>
       <a href="{{ url_for('new_invoice') }}"
-         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 transition">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.endpoint == 'new_invoice' %}active{% else %}text-gray-400{% endif %}">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
         New Invoice
       </a>
     </nav>
-    <div class="px-4 py-4 border-t border-gray-700">
-      <div class="flex items-center gap-3 mb-3">
-        <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-sm font-bold">
+
+    <!-- User -->
+    <div class="px-3 py-4 border-t" style="border-color:#2a2a30;">
+      <div class="flex items-center gap-3 px-3 py-2 rounded-xl" style="background:#1e1e24;">
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--accent);flex-shrink:0;" class="flex items-center justify-center text-white text-sm font-bold font-display">
           {{ current_user.name[0].upper() }}
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-white truncate">{{ current_user.name }}</p>
-          <p class="text-xs text-gray-400 truncate">{{ current_user.email }}</p>
+          <div class="text-sm font-medium text-white truncate">{{ current_user.name }}</div>
+          <div style="font-size:11px;color:#72727a;" class="truncate">{{ current_user.email }}</div>
         </div>
+        <a href="{{ url_for('logout') }}" title="Sign out">
+          <svg class="w-4 h-4" style="color:#72727a;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </a>
       </div>
-      <a href="{{ url_for('logout') }}" class="flex items-center gap-2 text-xs text-gray-400 hover:text-red-400 transition">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-        Sign Out
-      </a>
     </div>
   </aside>
 
-  <!-- Main Content -->
-  <main class="ml-64 flex-1 p-8">
+  <!-- Main -->
+  <main style="margin-left:260px;" class="flex-1 p-8">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="mb-6 space-y-2">
         {% for category, message in messages %}
-          <div class="px-4 py-3 rounded-lg text-sm font-medium
-            {% if category == 'error' %}bg-red-100 text-red-700 border border-red-200
-            {% else %}bg-green-100 text-green-700 border border-green-200{% endif %}">
+          <div class="px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2
+            {% if category == 'error' %}bg-red-50 text-red-700 border border-red-100
+            {% else %}bg-green-50 text-green-700 border border-green-100{% endif %}">
+            {% if category == 'error' %}
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {% else %}
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            {% endif %}
             {{ message }}
           </div>
         {% endfor %}
@@ -87,13 +120,12 @@
 </div>
 
 {% else %}
-<!-- Auth Layout -->
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
     <div class="fixed top-4 right-4 z-50 space-y-2">
     {% for category, message in messages %}
-      <div class="px-4 py-3 rounded-lg text-sm font-medium shadow-lg
-        {% if category == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+      <div class="px-4 py-3 rounded-xl text-sm font-medium shadow-lg
+        {% if category == 'error' %}bg-red-50 text-red-700{% else %}bg-green-50 text-green-700{% endif %}">
         {{ message }}
       </div>
     {% endfor %}
