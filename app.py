@@ -1,8 +1,10 @@
 import os
+import json
+import base64
+import requests
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from flask_mail import Mail, Message
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date
@@ -12,36 +14,28 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
-import json
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'invoice-system-secret-key-2024')
 
-# Database — uses PostgreSQL on Render, SQLite locally
+# Database
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///invoices.db')
 if database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Mail config — uses Mailtrap
-app.config['MAIL_SERVER'] = 'sandbox.smtp.mailtrap.io'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USE_SSL'] = False
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = 'invoiceflow@demo.com'
-app.config['MAIL_DEBUG'] = True
+# Mailtrap API
+MAILTRAP_TOKEN = os.environ.get('MAILTRAP_TOKEN')
+
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-mail = Mail(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
 
 
-# ── Models ────────────────────────────────────────────────────────────────────
+# ── Models ─────────────────────────────────────────────────────────────────────
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -86,7 +80,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── Helpers ─────────────────────────────────────────────────────────────────────
 
 def generate_invoice_number(user_id):
     count = Invoice.query.filter_by(user_id=user_id).count() + 1
@@ -104,7 +98,7 @@ def update_overdue_invoices():
     db.session.commit()
 
 
-def generate_pdf_from_html(invoice, user):
+def generate_pdf_from_invoice(invoice, user):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             rightMargin=2*cm, leftMargin=2*cm,
@@ -112,19 +106,16 @@ def generate_pdf_from_html(invoice, user):
     styles = getSampleStyleSheet()
     story = []
 
-    # Header
     header_style = ParagraphStyle('header', fontSize=20, textColor=colors.HexColor('#2563eb'), fontName='Helvetica-Bold')
     story.append(Paragraph('InvoiceFlow', header_style))
     story.append(Paragraph(user.company or user.name, styles['Normal']))
     story.append(Paragraph(user.email, styles['Normal']))
     story.append(Spacer(1, 0.5*cm))
 
-    # Invoice number and status
     story.append(Paragraph(f'<b>Invoice: {invoice.invoice_number}</b>', styles['Normal']))
     story.append(Paragraph(f'Status: {invoice.status}', styles['Normal']))
     story.append(Spacer(1, 0.3*cm))
 
-    # Client and dates
     info_data = [
         ['Bill To', 'Dates'],
         [invoice.client_name, f'Issued: {invoice.issue_date.strftime("%d %b %Y")}'],
@@ -143,7 +134,6 @@ def generate_pdf_from_html(invoice, user):
     story.append(info_table)
     story.append(Spacer(1, 0.5*cm))
 
-    # Line items
     item_data = [['Description', 'Qty', 'Unit Price', 'Amount']]
     for item in invoice.items:
         item_data.append([
@@ -167,7 +157,6 @@ def generate_pdf_from_html(invoice, user):
     story.append(item_table)
     story.append(Spacer(1, 0.3*cm))
 
-    # Totals
     totals_data = [
         ['', 'Subtotal', f'RM {invoice.subtotal:.2f}'],
         ['', f'Tax ({invoice.tax_percent}%)', f'RM {invoice.tax_amount:.2f}'],
@@ -184,13 +173,11 @@ def generate_pdf_from_html(invoice, user):
     ]))
     story.append(totals_table)
 
-    # Notes
     if invoice.notes:
         story.append(Spacer(1, 0.5*cm))
         story.append(Paragraph('<b>Notes</b>', styles['Normal']))
         story.append(Paragraph(invoice.notes, styles['Normal']))
 
-    # Footer
     story.append(Spacer(1, 1*cm))
     footer_style = ParagraphStyle('footer', fontSize=9, textColor=colors.HexColor('#9ca3af'), alignment=1)
     story.append(Paragraph('Thank you for your business!', footer_style))
@@ -200,7 +187,7 @@ def generate_pdf_from_html(invoice, user):
     return buffer
 
 
-# ── Auth Routes ───────────────────────────────────────────────────────────────
+# ── Auth Routes ─────────────────────────────────────────────────────────────────
 
 @app.route('/')
 def index():
@@ -263,7 +250,7 @@ def logout():
     return redirect(url_for('login'))
 
 
-# ── Dashboard ─────────────────────────────────────────────────────────────────
+# ── Dashboard ───────────────────────────────────────────────────────────────────
 
 @app.route('/dashboard')
 @login_required
@@ -295,7 +282,7 @@ def dashboard():
     )
 
 
-# ── Revenue Trend API ─────────────────────────────────────────────────────────
+# ── Revenue Trend API ───────────────────────────────────────────────────────────
 
 @app.route('/api/revenue-trend')
 @login_required
@@ -309,7 +296,7 @@ def revenue_trend():
     return jsonify([{'month': k, 'revenue': round(v, 2)} for k, v in sorted(monthly.items())])
 
 
-# ── Invoice Routes ─────────────────────────────────────────────────────────────
+# ── Invoice Routes ──────────────────────────────────────────────────────────────
 
 @app.route('/invoices')
 @login_required
@@ -442,20 +429,20 @@ def update_status(id):
     return redirect(url_for('view_invoice', id=id))
 
 
-# ── PDF Download ──────────────────────────────────────────────────────────────
+# ── PDF Download ────────────────────────────────────────────────────────────────
 
 @app.route('/invoices/<int:id>/pdf')
 @login_required
 def download_pdf(id):
     inv = Invoice.query.filter_by(id=id, user_id=current_user.id).first_or_404()
-    pdf = generate_pdf_from_html(inv, current_user)
+    pdf = generate_pdf_from_invoice(inv, current_user)
     response = make_response(pdf.read())
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = f'attachment; filename={inv.invoice_number}.pdf'
     return response
 
 
-# ── Send Invoice by Email ─────────────────────────────────────────────────────
+# ── Send Invoice by Email ───────────────────────────────────────────────────────
 
 @app.route('/invoices/<int:id>/send', methods=['POST'])
 @login_required
@@ -466,50 +453,50 @@ def send_invoice(id):
         flash('This invoice has no client email address. Please edit the invoice and add one.', 'error')
         return redirect(url_for('view_invoice', id=id))
 
-    pdf = generate_pdf_from_html(inv, current_user)
+    pdf = generate_pdf_from_invoice(inv, current_user)
 
     try:
-        msg = Message(
-            subject=f'Invoice {inv.invoice_number} from {current_user.company or current_user.name}',
-            recipients=[inv.client_email]
+        pdf_base64 = base64.b64encode(pdf.read()).decode('utf-8')
+
+        response = requests.post(
+            'https://sandbox.api.mailtrap.io/api/send/inbox',
+            headers={
+                'Authorization': f'Bearer {MAILTRAP_TOKEN}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'from': {'email': 'invoiceflow@demo.com', 'name': 'InvoiceFlow'},
+                'to': [{'email': inv.client_email, 'name': inv.client_name}],
+                'subject': f'Invoice {inv.invoice_number} from {current_user.company or current_user.name}',
+                'text': f'Dear {inv.client_name},\n\nPlease find attached invoice {inv.invoice_number}.\n\nAmount Due: RM {inv.total:.2f}\nDue Date: {inv.due_date.strftime("%d %b %Y")}\n\nThank you for your business.\n\n{current_user.company or current_user.name}',
+                'attachments': [{
+                    'content': pdf_base64,
+                    'filename': f'{inv.invoice_number}.pdf',
+                    'type': 'application/pdf',
+                    'disposition': 'attachment'
+                }]
+            }
         )
-        msg.body = f"""Dear {inv.client_name},
 
-Please find attached your invoice {inv.invoice_number}.
+        if response.status_code == 200:
+            if inv.status == 'Draft':
+                inv.status = 'Unpaid'
+                db.session.commit()
+            flash(f'Invoice successfully sent to {inv.client_email}!', 'success')
+        else:
+            flash(f'Failed to send email. Error: {response.text}', 'error')
 
-Amount Due: RM {inv.total:.2f}
-Due Date: {inv.due_date.strftime('%d %b %Y')}
-
-Thank you for your business.
-
-{current_user.company or current_user.name}"""
-
-        msg.attach(
-            filename=f'{inv.invoice_number}.pdf',
-            content_type='application/pdf',
-            data=pdf.read()
-        )
-        mail.send(msg)
-
-        if inv.status == 'Draft':
-            inv.status = 'Unpaid'
-            db.session.commit()
-
-        flash(f'Invoice successfully sent to {inv.client_email}!', 'success')
     except Exception as e:
-        flash(f'Failed to send email. Please check your mail settings. Error: {str(e)}', 'error')
+        flash(f'Failed to send email. Error: {str(e)}', 'error')
 
     return redirect(url_for('view_invoice', id=id))
 
 
-# ── Run ────────────────────────────────────────────────────────────────────────
+# ── Run ─────────────────────────────────────────────────────────────────────────
+
 with app.app_context():
     db.create_all()
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True)
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
