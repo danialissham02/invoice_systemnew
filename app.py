@@ -83,18 +83,16 @@ def load_user(user_id):
 # ── Helpers ─────────────────────────────────────────────────────────────────────
 
 def generate_invoice_number(user_id):
-    while True:
-        count = Invoice.query.filter_by(user_id=user_id).count() + 1
-        number = f"INV-{datetime.now().year}-{count:04d}"
-        existing = Invoice.query.filter_by(invoice_number=number).first()
-        if not existing:
-            return number
-        # If number exists, increment count to find next available
-        count += 1
-        number = f"INV-{datetime.now().year}-{count:04d}"
-        existing = Invoice.query.filter_by(invoice_number=number).first()
-        if not existing:
-            return number
+    year = datetime.now().year
+    last = Invoice.query.filter(
+        Invoice.invoice_number.like(f'INV-{year}-%')
+    ).order_by(Invoice.id.desc()).first()
+    if last:
+        last_num = int(last.invoice_number.split('-')[-1])
+        count = last_num + 1
+    else:
+        count = 1
+    return f"INV-{year}-{count:04d}"
 
 
 def update_overdue_invoices():
