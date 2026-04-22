@@ -77,6 +77,16 @@
         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
         New Invoice
       </a>
+      <a href="{{ url_for('reports') }}"
+         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.endpoint == 'reports' %}active{% else %}text-gray-400{% endif %}">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Reports
+      </a>
+      <a href="{{ url_for('reports') }}"
+         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.endpoint == 'reports' %}active{% else %}text-gray-400{% endif %}">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        Reports
+      </a>
     </nav>
 
     <!-- User -->

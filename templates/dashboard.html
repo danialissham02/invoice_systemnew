@@ -12,87 +12,117 @@
 
 <!-- KPI Cards -->
 <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-  {% set cards = [
-    ('Total Revenue', 'RM ' ~ "%.2f"|format(total_revenue), 'From paid invoices', '#dcfce7', '#166534', 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1'),
-    ('Outstanding', 'RM ' ~ "%.2f"|format(outstanding), 'Unpaid + Overdue', '#fef9c3', '#854d0e', 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'),
-    ('Overdue', overdue_count|string, 'Past due date', '#fee2e2', '#991b1b', 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'),
-    ('Total Invoices', total_invoices|string, 'All time', '#ede9ff', '#4a2fe0', 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'),
-  ] %}
-  {% for label, value, sub, bg, color, icon in cards %}
-  <div class="card p-5 fade-up fade-up-{{ loop.index }}" style="border-radius:16px;">
-    <div class="flex items-start justify-between mb-4">
-      <div style="width:38px;height:38px;background:{{ bg }};border-radius:10px;" class="flex items-center justify-center flex-shrink-0">
-        <svg class="w-5 h-5" style="color:{{ color }};" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ icon }}"/></svg>
-      </div>
+  <div class="card p-5 fade-up fade-up-1">
+    <div style="width:38px;height:38px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+      <svg class="w-5 h-5" style="color:#166534;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>
     </div>
-    <div class="font-display font-700" style="font-size:22px;letter-spacing:-0.5px;color:var(--text);">{{ value }}</div>
-    <div style="font-size:12px;color:var(--muted);margin-top:2px;">{{ label }}</div>
-    <div style="font-size:11px;color:{{ color }};margin-top:4px;">{{ sub }}</div>
+    <div class="font-display font-700" style="font-size:22px;letter-spacing:-0.5px;">RM {{ "%.2f"|format(total_revenue) }}</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:2px;">Total Revenue</div>
+    <div style="font-size:11px;color:#166534;margin-top:4px;">From paid invoices</div>
   </div>
-  {% endfor %}
+  <div class="card p-5 fade-up fade-up-2">
+    <div style="width:38px;height:38px;background:#fef9c3;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+      <svg class="w-5 h-5" style="color:#854d0e;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div class="font-display font-700" style="font-size:22px;letter-spacing:-0.5px;">RM {{ "%.2f"|format(outstanding) }}</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:2px;">Outstanding</div>
+    <div style="font-size:11px;color:#854d0e;margin-top:4px;">Unpaid + Overdue</div>
+  </div>
+  <div class="card p-5 fade-up fade-up-3">
+    <div style="width:38px;height:38px;background:#fee2e2;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+      <svg class="w-5 h-5" style="color:#991b1b;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    </div>
+    <div class="font-display font-700" style="font-size:22px;letter-spacing:-0.5px;">{{ overdue_count }}</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:2px;">Overdue</div>
+    <div style="font-size:11px;color:#991b1b;margin-top:4px;">Past due date</div>
+  </div>
+  <div class="card p-5 fade-up fade-up-4">
+    <div style="width:38px;height:38px;background:#ede9ff;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+      <svg class="w-5 h-5" style="color:#4a2fe0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    </div>
+    <div class="font-display font-700" style="font-size:22px;letter-spacing:-0.5px;">{{ total_invoices }}</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:2px;">Total Invoices</div>
+    <div style="font-size:11px;color:#4a2fe0;margin-top:4px;">All time</div>
+  </div>
 </div>
 
-<!-- Charts -->
-<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
+<!-- Row 2: Revenue Forecast + Status Doughnut -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-4">
   <div class="card p-6 xl:col-span-2 fade-up fade-up-2">
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-start justify-between mb-5">
       <div>
-        <div class="font-display font-600" style="font-size:15px;">Revenue Trend</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Monthly paid invoices</div>
+        <div class="font-display font-600" style="font-size:15px;">Revenue Trend & Forecast</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Actual revenue with next month prediction</div>
+      </div>
+      <div id="forecastBadge" style="background:#ede9ff;border-radius:10px;padding:6px 12px;text-align:right;display:none;">
+        <div style="font-size:10px;color:#6c47ff;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Next Month</div>
+        <div id="forecastVal" class="font-display font-700" style="font-size:16px;color:#6c47ff;">—</div>
       </div>
     </div>
-    <canvas id="revenueChart" height="110"></canvas>
+    <canvas id="revenueChart" height="120"></canvas>
   </div>
-
   <div class="card p-6 fade-up fade-up-3">
-    <div class="mb-6">
+    <div class="mb-5">
       <div class="font-display font-600" style="font-size:15px;">Invoice Status</div>
       <div style="font-size:12px;color:var(--muted);margin-top:2px;">Breakdown by status</div>
     </div>
-    <canvas id="statusChart" height="160"></canvas>
+    <canvas id="statusChart" height="170"></canvas>
   </div>
 </div>
 
-<!-- Recent Invoices -->
-<div class="card fade-up fade-up-4">
-  <div class="flex items-center justify-between px-6 py-4" style="border-bottom:1px solid var(--border);">
-    <div class="font-display font-600" style="font-size:15px;">Recent Invoices</div>
-    <a href="{{ url_for('invoices') }}" style="font-size:13px;color:var(--accent);font-weight:500;text-decoration:none;">View all →</a>
+<!-- Row 3: Top Clients + Recent Invoices -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-4">
+  <div class="card p-6 fade-up fade-up-3">
+    <div class="mb-5">
+      <div class="font-display font-600" style="font-size:15px;">Top Clients</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">By total revenue paid</div>
+    </div>
+    <canvas id="clientsChart" height="210"></canvas>
   </div>
-  {% if recent_invoices %}
-  <div class="overflow-x-auto">
-    <table style="width:100%;font-size:13px;">
-      <thead>
-        <tr style="border-bottom:1px solid var(--border);">
-          {% for col in ['Invoice #', 'Client', 'Due Date', 'Amount', 'Status', ''] %}
-          <th style="padding:12px 24px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">{{ col }}</th>
+
+  <div class="card xl:col-span-2 fade-up fade-up-4">
+    <div class="flex items-center justify-between px-6 py-4" style="border-bottom:1px solid var(--border);">
+      <div>
+        <div class="font-display font-600" style="font-size:15px;">Recent Invoices</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:1px;">Latest activity</div>
+      </div>
+      <a href="{{ url_for('invoices') }}" style="font-size:13px;color:var(--accent);font-weight:500;text-decoration:none;">View all →</a>
+    </div>
+    {% if recent_invoices %}
+    <div class="overflow-x-auto">
+      <table style="width:100%;font-size:13px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">Invoice</th>
+            <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">Client</th>
+            <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">Amount</th>
+            <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in recent_invoices %}
+          <tr style="border-bottom:1px solid var(--border);transition:background 0.1s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+            <td style="padding:12px 20px;">
+              <a href="{{ url_for('view_invoice', id=inv.id) }}" style="font-weight:600;color:var(--accent);text-decoration:none;">{{ inv.invoice_number }}</a>
+              <div style="font-size:11px;color:var(--muted);">{{ inv.due_date.strftime('%d %b %Y') }}</div>
+            </td>
+            <td style="padding:12px 20px;color:var(--text);">{{ inv.client_name }}</td>
+            <td style="padding:12px 20px;font-weight:600;">RM {{ "%.2f"|format(inv.total) }}</td>
+            <td style="padding:12px 20px;">
+              <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;" class="badge-{{ inv.status.lower() }}">{{ inv.status }}</span>
+            </td>
+          </tr>
           {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for inv in recent_invoices %}
-        <tr style="border-bottom:1px solid var(--border);transition:background 0.1s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
-          <td style="padding:14px 24px;font-weight:600;color:var(--accent);">{{ inv.invoice_number }}</td>
-          <td style="padding:14px 24px;color:var(--text);">{{ inv.client_name }}</td>
-          <td style="padding:14px 24px;color:var(--muted);">{{ inv.due_date.strftime('%d %b %Y') }}</td>
-          <td style="padding:14px 24px;font-weight:600;">RM {{ "%.2f"|format(inv.total) }}</td>
-          <td style="padding:14px 24px;">
-            <span style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;" class="badge-{{ inv.status.lower() }}">{{ inv.status }}</span>
-          </td>
-          <td style="padding:14px 24px;">
-            <a href="{{ url_for('view_invoice', id=inv.id) }}" style="font-size:12px;color:var(--accent);font-weight:500;text-decoration:none;">View →</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="padding:50px;text-align:center;">
+      <p style="color:var(--muted);font-size:14px;margin-bottom:12px;">No invoices yet</p>
+      <a href="{{ url_for('new_invoice') }}" class="btn-primary" style="display:inline-block;padding:10px 20px;font-size:13px;text-decoration:none;">Create your first invoice</a>
+    </div>
+    {% endif %}
   </div>
-  {% else %}
-  <div style="padding:60px;text-align:center;">
-    <div style="color:var(--muted);font-size:14px;margin-bottom:16px;">No invoices yet</div>
-    <a href="{{ url_for('new_invoice') }}" class="btn-primary" style="display:inline-block;padding:10px 20px;font-size:13px;text-decoration:none;">Create your first invoice</a>
-  </div>
-  {% endif %}
 </div>
 {% endblock %}
 
@@ -100,26 +130,61 @@
 <script>
 const statusCounts = {{ status_counts|safe }};
 
-fetch('/api/revenue-trend').then(r => r.json()).then(data => {
+// ── Revenue Forecast Chart ──────────────────────────────────────────────────────
+fetch('/api/revenue-forecast').then(r => r.json()).then(data => {
+  if (!data.labels || data.labels.length === 0) {
+    document.getElementById('revenueChart').parentElement.innerHTML +=
+      '<p style="text-align:center;color:var(--muted);font-size:13px;margin-top:20px;">Not enough data for forecast yet</p>';
+    return;
+  }
+  const allLabels = [...data.labels, data.forecast_label];
+  const actualData = [...data.actual, null];
+  const forecastData = [...Array(data.actual.length - 1).fill(null), data.actual[data.actual.length - 1], data.forecast_value];
+
+  if (data.forecast_value > 0) {
+    document.getElementById('forecastBadge').style.display = 'block';
+    document.getElementById('forecastVal').textContent = 'RM ' + data.forecast_value.toLocaleString('en-MY', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+
   new Chart(document.getElementById('revenueChart'), {
     type: 'line',
     data: {
-      labels: data.length ? data.map(d => d.month) : ['No Data'],
-      datasets: [{
-        data: data.length ? data.map(d => d.revenue) : [0],
-        borderColor: '#6c47ff',
-        backgroundColor: 'rgba(108,71,255,0.08)',
-        borderWidth: 2.5,
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: '#6c47ff',
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      }]
+      labels: allLabels,
+      datasets: [
+        {
+          label: 'Actual Revenue',
+          data: actualData,
+          borderColor: '#6c47ff',
+          backgroundColor: 'rgba(108,71,255,0.08)',
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#6c47ff',
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          spanGaps: false,
+        },
+        {
+          label: 'Forecast',
+          data: forecastData,
+          borderColor: '#9b6dff',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          borderDash: [6, 4],
+          fill: false,
+          tension: 0.4,
+          pointBackgroundColor: '#9b6dff',
+          pointRadius: 5,
+          pointStyle: 'rectRot',
+          spanGaps: false,
+        }
+      ]
     },
     options: {
       responsive: true,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, color: '#72727a', padding: 16, usePointStyle: true } }
+      },
       scales: {
         y: { beginAtZero: true, grid: { color: '#f0f0f5' }, ticks: { color: '#72727a', font: { size: 11 } } },
         x: { grid: { display: false }, ticks: { color: '#72727a', font: { size: 11 } } }
@@ -128,24 +193,58 @@ fetch('/api/revenue-trend').then(r => r.json()).then(data => {
   });
 });
 
+// ── Status Doughnut ─────────────────────────────────────────────────────────────
 new Chart(document.getElementById('statusChart'), {
   type: 'doughnut',
   data: {
     labels: Object.keys(statusCounts),
     datasets: [{
       data: Object.values(statusCounts),
-      backgroundColor: ['#e2e8f0', '#fde68a', '#86efac', '#fca5a5'],
+      backgroundColor: ['#c4b5fd', '#fde68a', '#6c47ff', '#fca5a5'],
       borderWidth: 0,
-      hoverOffset: 4
+      hoverOffset: 6
     }]
   },
   options: {
     responsive: true,
-    cutout: '70%',
+    cutout: '72%',
     plugins: {
-      legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 16, color: '#72727a' } }
+      legend: { position: 'bottom', labels: { font: { size: 11 }, color: '#72727a', padding: 14, usePointStyle: true } }
     }
   }
+});
+
+// ── Top Clients Bar Chart ───────────────────────────────────────────────────────
+fetch('/api/top-clients').then(r => r.json()).then(data => {
+  if (!data.length) return;
+  new Chart(document.getElementById('clientsChart'), {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.client.length > 12 ? d.client.substring(0,12)+'…' : d.client),
+      datasets: [{
+        data: data.map(d => d.revenue),
+        backgroundColor: [
+          'rgba(108,71,255,0.85)',
+          'rgba(108,71,255,0.70)',
+          'rgba(108,71,255,0.57)',
+          'rgba(108,71,255,0.45)',
+          'rgba(108,71,255,0.33)',
+          'rgba(108,71,255,0.22)',
+        ],
+        borderRadius: 8,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: '#f0f0f5' }, ticks: { color: '#72727a', font: { size: 10 } } },
+        y: { grid: { display: false }, ticks: { color: '#72727a', font: { size: 11 } } }
+      }
+    }
+  });
 });
 </script>
 {% endblock %}

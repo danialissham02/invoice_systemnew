@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import requests
+import numpy as np
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -507,6 +508,166 @@ def send_invoice(id):
         flash(f'Failed to send email. Error: {str(e)}', 'error')
 
     return redirect(url_for('view_invoice', id=id))
+
+
+# ── Reports Page ───────────────────────────────────────────────────────────────
+
+@app.route('/reports')
+@login_required
+def reports():
+    update_overdue_invoices()
+    invoices = Invoice.query.filter_by(user_id=current_user.id).all()
+
+    from collections import defaultdict
+    monthly_data = defaultdict(lambda: {'sent': 0, 'paid': 0, 'overdue': 0, 'revenue': 0.0})
+    for inv in invoices:
+        key = inv.issue_date.strftime('%b %Y')
+        monthly_data[key]['sent'] += 1
+        if inv.status == 'Paid':
+            monthly_data[key]['paid'] += 1
+            monthly_data[key]['revenue'] += inv.total
+        if inv.status == 'Overdue':
+            monthly_data[key]['overdue'] += 1
+
+    sorted_months = sorted(monthly_data.items(),
+        key=lambda x: datetime.strptime(x[0], '%b %Y'), reverse=True)
+
+    summary = []
+    for month, data in sorted_months:
+        rate = round((data['paid'] / data['sent'] * 100)) if data['sent'] > 0 else 0
+        summary.append({
+            'month': month,
+            'sent': data['sent'],
+            'paid': data['paid'],
+            'overdue': data['overdue'],
+            'revenue': round(data['revenue'], 2),
+            'rate': rate
+        })
+
+    total_revenue = sum(i.total for i in invoices if i.status == 'Paid')
+    total_sent = len(invoices)
+    total_paid = sum(1 for i in invoices if i.status == 'Paid')
+    overall_rate = round((total_paid / total_sent * 100)) if total_sent > 0 else 0
+
+    return render_template('reports.html',
+        summary=summary,
+        total_revenue=total_revenue,
+        total_sent=total_sent,
+        total_paid=total_paid,
+        overall_rate=overall_rate
+    )
+
+
+# ── Top Clients API ─────────────────────────────────────────────────────────────
+
+@app.route('/api/top-clients')
+@login_required
+def top_clients():
+    from collections import defaultdict
+    invoices = Invoice.query.filter_by(user_id=current_user.id, status='Paid').all()
+    clients = defaultdict(float)
+    for inv in invoices:
+        clients[inv.client_name] += inv.total
+    sorted_clients = sorted(clients.items(), key=lambda x: x[1], reverse=True)[:6]
+    return jsonify([{'client': k, 'revenue': round(v, 2)} for k, v in sorted_clients])
+
+
+# ── Revenue Forecast API ────────────────────────────────────────────────────────
+
+@app.route('/api/revenue-forecast')
+@login_required
+def revenue_forecast():
+    from collections import defaultdict
+    invoices = Invoice.query.filter_by(user_id=current_user.id, status='Paid').all()
+    monthly = defaultdict(float)
+    for inv in invoices:
+        key = inv.issue_date.strftime('%b %Y')
+        monthly[key] += inv.total
+
+    sorted_months = sorted(monthly.items(),
+        key=lambda x: datetime.strptime(x[0], '%b %Y'))
+
+    if len(sorted_months) < 2:
+        return jsonify({'labels': [], 'actual': [], 'forecast_label': '', 'forecast_value': 0})
+
+    labels = [m[0] for m in sorted_months]
+    values = [round(m[1], 2) for m in sorted_months]
+
+    # Linear regression using numpy
+    x = np.arange(len(values))
+    coeffs = np.polyfit(x, values, 1)
+    forecast_value = max(0, round(float(np.polyval(coeffs, len(values))), 2))
+
+    # Next month label
+    last_date = datetime.strptime(labels[-1], '%b %Y')
+    if last_date.month == 12:
+        next_month = datetime(last_date.year + 1, 1, 1)
+    else:
+        next_month = datetime(last_date.year, last_date.month + 1, 1)
+    forecast_label = next_month.strftime('%b %Y')
+
+    return jsonify({
+        'labels': labels,
+        'actual': values,
+        'forecast_label': forecast_label,
+        'forecast_value': forecast_value
+    })
+
+
+# ── Top Clients API ─────────────────────────────────────────────────────────────
+
+@app.route('/api/top-clients')
+@login_required
+def top_clients():
+    from collections import defaultdict
+    invoices = Invoice.query.filter_by(user_id=current_user.id, status='Paid').all()
+    clients = defaultdict(float)
+    for inv in invoices:
+        clients[inv.client_name] += inv.total
+    sorted_clients = sorted(clients.items(), key=lambda x: x[1], reverse=True)[:6]
+    return jsonify([{'client': c, 'revenue': round(r, 2)} for c, r in sorted_clients])
+
+
+# ── Monthly Summary API ──────────────────────────────────────────────────────────
+
+@app.route('/api/monthly-summary')
+@login_required
+def monthly_summary():
+    from collections import defaultdict
+    invoices = Invoice.query.filter_by(user_id=current_user.id).all()
+    monthly = defaultdict(lambda: {'sent': 0, 'paid': 0, 'overdue': 0, 'revenue': 0.0})
+    for inv in invoices:
+        key = inv.issue_date.strftime('%b %Y')
+        monthly[key]['sent'] += 1
+        if inv.status == 'Paid':
+            monthly[key]['paid'] += 1
+            monthly[key]['revenue'] += inv.total
+        elif inv.status == 'Overdue':
+            monthly[key]['overdue'] += 1
+    sorted_months = sorted(monthly.items(), key=lambda x: datetime.strptime(x[0], '%b %Y'), reverse=True)[:6]
+    result = []
+    for month, data in sorted_months:
+        rate = round((data['paid'] / data['sent'] * 100) if data['sent'] > 0 else 0)
+        result.append({'month': month, 'sent': data['sent'], 'paid': data['paid'],
+                       'overdue': data['overdue'], 'revenue': round(data['revenue'], 2), 'rate': rate})
+    return jsonify(result)
+
+
+# ── Reports Page ─────────────────────────────────────────────────────────────────
+
+@app.route('/reports')
+@login_required
+def reports():
+    invoices = Invoice.query.filter_by(user_id=current_user.id).all()
+    total_invoices = len(invoices)
+    total_paid = sum(1 for i in invoices if i.status == 'Paid')
+    total_revenue = sum(i.total for i in invoices if i.status == 'Paid')
+    total_outstanding = sum(i.total for i in invoices if i.status in ('Unpaid', 'Overdue'))
+    return render_template('reports.html',
+        total_invoices=total_invoices,
+        total_paid=total_paid,
+        total_revenue=total_revenue,
+        total_outstanding=total_outstanding)
 
 
 # ── Run ─────────────────────────────────────────────────────────────────────────
