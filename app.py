@@ -510,22 +510,6 @@ def send_invoice(id):
     return redirect(url_for('view_invoice', id=id))
 
 
-# ── Reports Page ───────────────────────────────────────────────────────────────
-
-
-# ── Top Clients API ─────────────────────────────────────────────────────────────
-
-@app.route('/api/top-clients')
-@login_required
-def top_clients():
-    from collections import defaultdict
-    invoices = Invoice.query.filter_by(user_id=current_user.id, status='Paid').all()
-    clients = defaultdict(float)
-    for inv in invoices:
-        clients[inv.client_name] += inv.total
-    sorted_clients = sorted(clients.items(), key=lambda x: x[1], reverse=True)[:6]
-    return jsonify([{'client': k, 'revenue': round(v, 2)} for k, v in sorted_clients])
-
 
 # ── Revenue Forecast API ────────────────────────────────────────────────────────
 
