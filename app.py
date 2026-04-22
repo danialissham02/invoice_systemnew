@@ -618,7 +618,7 @@ def revenue_forecast():
 
 @app.route('/api/top-clients')
 @login_required
-def top_clients():
+def top_clients_summary():
     from collections import defaultdict
     invoices = Invoice.query.filter_by(user_id=current_user.id, status='Paid').all()
     clients = defaultdict(float)
