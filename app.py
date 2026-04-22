@@ -512,51 +512,6 @@ def send_invoice(id):
 
 # ── Reports Page ───────────────────────────────────────────────────────────────
 
-@app.route('/reports')
-@login_required
-def reports():
-    update_overdue_invoices()
-    invoices = Invoice.query.filter_by(user_id=current_user.id).all()
-
-    from collections import defaultdict
-    monthly_data = defaultdict(lambda: {'sent': 0, 'paid': 0, 'overdue': 0, 'revenue': 0.0})
-    for inv in invoices:
-        key = inv.issue_date.strftime('%b %Y')
-        monthly_data[key]['sent'] += 1
-        if inv.status == 'Paid':
-            monthly_data[key]['paid'] += 1
-            monthly_data[key]['revenue'] += inv.total
-        if inv.status == 'Overdue':
-            monthly_data[key]['overdue'] += 1
-
-    sorted_months = sorted(monthly_data.items(),
-        key=lambda x: datetime.strptime(x[0], '%b %Y'), reverse=True)
-
-    summary = []
-    for month, data in sorted_months:
-        rate = round((data['paid'] / data['sent'] * 100)) if data['sent'] > 0 else 0
-        summary.append({
-            'month': month,
-            'sent': data['sent'],
-            'paid': data['paid'],
-            'overdue': data['overdue'],
-            'revenue': round(data['revenue'], 2),
-            'rate': rate
-        })
-
-    total_revenue = sum(i.total for i in invoices if i.status == 'Paid')
-    total_sent = len(invoices)
-    total_paid = sum(1 for i in invoices if i.status == 'Paid')
-    overall_rate = round((total_paid / total_sent * 100)) if total_sent > 0 else 0
-
-    return render_template('reports.html',
-        summary=summary,
-        total_revenue=total_revenue,
-        total_sent=total_sent,
-        total_paid=total_paid,
-        overall_rate=overall_rate
-    )
-
 
 # ── Top Clients API ─────────────────────────────────────────────────────────────
 
@@ -618,7 +573,7 @@ def revenue_forecast():
 
 @app.route('/api/top-clients')
 @login_required
-def top_clients_summary():
+def top_clients():
     from collections import defaultdict
     invoices = Invoice.query.filter_by(user_id=current_user.id, status='Paid').all()
     clients = defaultdict(float)
