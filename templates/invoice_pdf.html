@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Helvetica, sans-serif; font-size: 13px; color: #1f2937; margin: 40px; }
+    .header { margin-bottom: 30px; }
+    .brand { font-size: 22px; font-weight: bold; color: #2563eb; }
+    .invoice-title { font-size: 28px; color: #e5e7eb; font-weight: bold; }
+    .invoice-number { font-size: 16px; font-weight: bold; color: #1f2937; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; background: #dbeafe; color: #1d4ed8; }
+    .label { font-size: 11px; color: #9ca3af; text-transform: uppercase; margin-bottom: 4px; }
+    .info-box { background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th { background: #f9fafb; padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb; }
+    td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .totals-table { width: 250px; float: right; }
+    .totals-table td { border: none; padding: 5px 0; }
+    .total-final td { font-weight: bold; font-size: 15px; border-top: 2px solid #1f2937; padding-top: 8px; }
+    .total-amount { color: #2563eb; }
+    .notes-box { margin-top: 40px; padding: 15px; background: #f9fafb; border-radius: 8px; }
+    .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #9ca3af; }
+    .clearfix { clear: both; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <table style="width:100%; margin-bottom:30px; border:none;">
+    <tr>
+      <td style="border:none; padding:0;">
+        <div class="brand">InvoiceFlow</div>
+        <div style="color:#6b7280; margin-top:4px;">{{ user.company or user.name }}</div>
+        <div style="color:#9ca3af; font-size:12px;">{{ user.email }}</div>
+      </td>
+      <td style="border:none; padding:0; text-align:right;">
+        <div class="invoice-title">INVOICE</div>
+        <div class="invoice-number">{{ invoice.invoice_number }}</div>
+        <div class="badge" style="margin-top:6px;">{{ invoice.status }}</div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Bill To + Dates -->
+  <div class="info-box">
+    <table style="width:100%; margin:0; border:none;">
+      <tr>
+        <td style="border:none; padding:0; width:50%;">
+          <div class="label">Bill To</div>
+          <div style="font-weight:bold;">{{ invoice.client_name }}</div>
+          {% if invoice.client_email %}<div style="color:#6b7280;">{{ invoice.client_email }}</div>{% endif %}
+          {% if invoice.client_address %}<div style="color:#6b7280; margin-top:4px;">{{ invoice.client_address }}</div>{% endif %}
+        </td>
+        <td style="border:none; padding:0; text-align:right; vertical-align:top;">
+          <div class="label">Dates</div>
+          <div>Issued: <strong>{{ invoice.issue_date.strftime('%d %b %Y') }}</strong></div>
+          <div>Due: <strong>{{ invoice.due_date.strftime('%d %b %Y') }}</strong></div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Line Items -->
+  <table>
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th class="text-center">Qty</th>
+        <th class="text-right">Unit Price</th>
+        <th class="text-right">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in invoice.items %}
+      <tr>
+        <td>{{ item.description }}</td>
+        <td class="text-center">{{ item.quantity }}</td>
+        <td class="text-right">RM {{ "%.2f"|format(item.unit_price) }}</td>
+        <td class="text-right">RM {{ "%.2f"|format(item.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Totals -->
+  <table class="totals-table">
+    <tr><td style="color:#6b7280;">Subtotal</td><td class="text-right">RM {{ "%.2f"|format(invoice.subtotal) }}</td></tr>
+    {% if invoice.tax_percent > 0 %}
+    <tr><td style="color:#6b7280;">Tax ({{ invoice.tax_percent }}%)</td><td class="text-right">RM {{ "%.2f"|format(invoice.tax_amount) }}</td></tr>
+    {% endif %}
+    <tr class="total-final"><td>Total</td><td class="text-right total-amount">RM {{ "%.2f"|format(invoice.total) }}</td></tr>
+  </table>
+  <div class="clearfix"></div>
+
+  {% if invoice.notes %}
+  <div class="notes-box">
+    <div class="label">Notes</div>
+    <div>{{ invoice.notes }}</div>
+  </div>
+  {% endif %}
+
+  <div class="footer">Thank you for your business!</div>
+</body>
+</html>
