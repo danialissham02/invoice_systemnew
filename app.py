@@ -447,8 +447,7 @@ def update_status(id):
 @login_required
 def download_pdf(id):
     inv = Invoice.query.filter_by(id=id, user_id=current_user.id).first_or_404()
-    html = render_template('invoice_pdf.html', invoice=inv, user=current_user)
-    pdf = generate_pdf_from_html(html)
+    pdf = generate_pdf_from_html(inv, current_user)
     response = make_response(pdf.read())
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = f'attachment; filename={inv.invoice_number}.pdf'
@@ -466,8 +465,7 @@ def send_invoice(id):
         flash('This invoice has no client email address. Please edit the invoice and add one.', 'error')
         return redirect(url_for('view_invoice', id=id))
 
-    html = render_template('invoice_pdf.html', invoice=inv, user=current_user)
-    pdf = generate_pdf_from_html(html)
+    pdf = generate_pdf_from_html(inv, current_user)
 
     try:
         msg = Message(
