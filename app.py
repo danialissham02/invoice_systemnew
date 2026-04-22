@@ -25,8 +25,8 @@ if database_url.startswith('postgres://'):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Mailtrap API
-MAILTRAP_TOKEN = os.environ.get('MAILTRAP_TOKEN')
+# Resend API
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -442,7 +442,7 @@ def download_pdf(id):
     return response
 
 
-# ── Send Invoice by Email ───────────────────────────────────────────────────────
+# ── Send Invoice by Email via Resend ────────────────────────────────────────────
 
 @app.route('/invoices/<int:id>/send', methods=['POST'])
 @login_required
@@ -459,32 +459,30 @@ def send_invoice(id):
         pdf_base64 = base64.b64encode(pdf.read()).decode('utf-8')
 
         response = requests.post(
-            'https://sandbox.api.mailtrap.io/api/send/4565570',
+            'https://api.resend.com/emails',
             headers={
-                'Authorization': f'Bearer {MAILTRAP_TOKEN}',
+                'Authorization': f'Bearer {RESEND_API_KEY}',
                 'Content-Type': 'application/json'
             },
             json={
-                'from': {'email': 'invoiceflow@demo.com', 'name': 'InvoiceFlow'},
-                'to': [{'email': inv.client_email, 'name': inv.client_name}],
+                'from': 'InvoiceFlow <onboarding@resend.dev>',
+                'to': [inv.client_email],
                 'subject': f'Invoice {inv.invoice_number} from {current_user.company or current_user.name}',
                 'text': f'Dear {inv.client_name},\n\nPlease find attached invoice {inv.invoice_number}.\n\nAmount Due: RM {inv.total:.2f}\nDue Date: {inv.due_date.strftime("%d %b %Y")}\n\nThank you for your business.\n\n{current_user.company or current_user.name}',
                 'attachments': [{
                     'content': pdf_base64,
                     'filename': f'{inv.invoice_number}.pdf',
-                    'type': 'application/pdf',
-                    'disposition': 'attachment'
                 }]
             }
         )
 
-        if response.status_code == 200:
+        if response.status_code == 200 or response.status_code == 201:
             if inv.status == 'Draft':
                 inv.status = 'Unpaid'
                 db.session.commit()
             flash(f'Invoice successfully sent to {inv.client_email}!', 'success')
         else:
-            flash(f'Failed to send email. Error: {response.text}', 'error')
+            flash(f'Failed to send email. Status: {response.status_code} Error: {response.text}', 'error')
 
     except Exception as e:
         flash(f'Failed to send email. Error: {str(e)}', 'error')
