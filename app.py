@@ -323,41 +323,55 @@ def invoices():
 @login_required
 def new_invoice():
     if request.method == 'POST':
-        inv = Invoice(
-            invoice_number=generate_invoice_number(current_user.id),
-            client_name=request.form.get('client_name', '').strip(),
-            client_email=request.form.get('client_email', '').strip(),
-            client_address=request.form.get('client_address', '').strip(),
-            issue_date=datetime.strptime(request.form.get('issue_date'), '%Y-%m-%d').date(),
-            due_date=datetime.strptime(request.form.get('due_date'), '%Y-%m-%d').date(),
-            tax_percent=float(request.form.get('tax_percent', 0) or 0),
-            notes=request.form.get('notes', '').strip(),
-            status=request.form.get('status', 'Draft'),
-            user_id=current_user.id
-        )
-        db.session.add(inv)
-        db.session.flush()
+        try:
+            descriptions = request.form.getlist('item_description[]')
+            quantities = request.form.getlist('item_quantity[]')
+            prices = request.form.getlist('item_price[]')
 
-        descriptions = request.form.getlist('item_description[]')
-        quantities = request.form.getlist('item_quantity[]')
-        prices = request.form.getlist('item_price[]')
+            # Calculate totals first
+            tax_percent = float(request.form.get('tax_percent', 0) or 0)
+            subtotal = 0
+            valid_items = []
+            for desc, qty, price in zip(descriptions, quantities, prices):
+                if desc.strip():
+                    q = float(qty or 1)
+                    p = float(price or 0)
+                    amt = round(q * p, 2)
+                    subtotal += amt
+                    valid_items.append({'description': desc.strip(), 'quantity': q, 'unit_price': p, 'amount': amt})
 
-        subtotal = 0
-        for desc, qty, price in zip(descriptions, quantities, prices):
-            if desc.strip():
-                q = float(qty or 1)
-                p = float(price or 0)
-                amt = q * p
-                subtotal += amt
-                item = InvoiceItem(invoice_id=inv.id, description=desc.strip(), quantity=q, unit_price=p, amount=amt)
+            subtotal = round(subtotal, 2)
+            tax_amount = round(subtotal * (tax_percent / 100), 2)
+            total = round(subtotal + tax_amount, 2)
+
+            inv = Invoice(
+                invoice_number=generate_invoice_number(current_user.id),
+                client_name=request.form.get('client_name', '').strip(),
+                client_email=request.form.get('client_email', '').strip(),
+                client_address=request.form.get('client_address', '').strip(),
+                issue_date=datetime.strptime(request.form.get('issue_date'), '%Y-%m-%d').date(),
+                due_date=datetime.strptime(request.form.get('due_date'), '%Y-%m-%d').date(),
+                tax_percent=tax_percent,
+                tax_amount=tax_amount,
+                subtotal=subtotal,
+                total=total,
+                notes=request.form.get('notes', '').strip(),
+                status=request.form.get('status', 'Draft'),
+                user_id=current_user.id
+            )
+            db.session.add(inv)
+            db.session.flush()
+
+            for item_data in valid_items:
+                item = InvoiceItem(invoice_id=inv.id, **item_data)
                 db.session.add(item)
 
-        inv.subtotal = subtotal
-        inv.tax_amount = subtotal * (inv.tax_percent / 100)
-        inv.total = subtotal + inv.tax_amount
-        db.session.commit()
-        flash('Invoice created successfully!', 'success')
-        return redirect(url_for('view_invoice', id=inv.id))
+            db.session.commit()
+            flash('Invoice created successfully!', 'success')
+            return redirect(url_for('view_invoice', id=inv.id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating invoice: {str(e)}', 'error')
     return render_template('invoice_form.html', invoice=None, today=date.today().isoformat())
 
 
