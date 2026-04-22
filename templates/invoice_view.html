@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ invoice.invoice_number }} — InvoiceFlow{% endblock %}
+{% block title %}{{ invoice.invoice_number }} — Billify{% endblock %}
 
 {% block content %}
 <div class="flex items-center justify-between mb-8">
@@ -47,7 +47,12 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
       <div class="flex justify-between items-start mb-8">
         <div>
-          <h1 class="text-2xl font-bold text-blue-600">⚡ InvoiceFlow</h1>
+          <div class="flex items-center gap-2">
+            <div style="width:32px;height:32px;background:linear-gradient(135deg,#6c47ff,#9b6dff);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:white;">BL</span>
+            </div>
+            <h1 class="text-2xl font-bold" style="color:#6c47ff;font-family:'Syne',sans-serif;">Billify</h1>
+          </div>
           <p class="text-gray-500 text-sm mt-1">{{ current_user.company or current_user.name }}</p>
           <p class="text-gray-400 text-xs">{{ current_user.email }}</p>
         </div>

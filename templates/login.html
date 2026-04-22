@@ -1,42 +1,37 @@
 {% extends 'base.html' %}
-{% block title %}Sign In — Invoify{% endblock %}
+{% block title %}Sign In — Billify{% endblock %}
 {% block auth_content %}
 <div class="min-h-screen flex" style="background:#0f0f13;">
   <!-- Left Panel -->
   <div class="hidden lg:flex flex-col justify-between w-1/2 p-12" style="background:linear-gradient(135deg,#1a1025 0%,#0f0f13 100%);">
     <div class="flex items-center gap-3">
-      <div style="width:40px;height:40px;background:#6c47ff;border-radius:12px;" class="flex items-center justify-center">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <div style="width:42px;height:42px;background:linear-gradient(135deg,#6c47ff,#9b6dff);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(108,71,255,0.4);">
+        <span class="font-display font-700 text-white" style="font-size:16px;letter-spacing:-0.5px;">BL</span>
       </div>
-      <span class="font-display font-800 text-white text-xl" style="letter-spacing:-0.5px;">Invoify</span>
+      <span class="font-display font-800 text-white text-xl" style="letter-spacing:-0.5px;">Billify</span>
     </div>
-
     <div>
       <div style="font-size:42px;font-weight:800;color:white;line-height:1.1;letter-spacing:-1px;" class="font-display mb-6">
-        Manage invoices<br>
-        <span style="color:#6c47ff;">smarter.</span>
+        Manage invoices<br><span style="color:#6c47ff;">smarter.</span>
       </div>
       <p style="color:#72727a;font-size:15px;line-height:1.7;">From manual to digital in minutes. Track payments, send invoices, and get paid faster.</p>
-
-      <!-- Feature pills -->
       <div class="flex flex-wrap gap-2 mt-8">
         {% for f in ['PDF Generation', 'Email Sending', 'Revenue Dashboard', 'Auto Overdue'] %}
         <div style="background:rgba(108,71,255,0.12);border:1px solid rgba(108,71,255,0.25);border-radius:20px;padding:6px 14px;font-size:12px;color:#a78bfa;">{{ f }}</div>
         {% endfor %}
       </div>
     </div>
-
-    <div style="color:#3a3a42;font-size:12px;">© 2024 Invoify. Built for SMEs.</div>
+    <div style="color:#3a3a42;font-size:12px;">© 2024 Billify. Built for SMEs.</div>
   </div>
 
   <!-- Right Panel -->
   <div class="flex-1 flex items-center justify-center px-6 py-12">
     <div style="width:100%;max-width:400px;">
       <div class="lg:hidden flex items-center gap-2 mb-10">
-        <div style="width:32px;height:32px;background:#6c47ff;border-radius:8px;" class="flex items-center justify-center">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div style="width:34px;height:34px;background:linear-gradient(135deg,#6c47ff,#9b6dff);border-radius:9px;display:flex;align-items:center;justify-content:center;">
+          <span class="font-display font-700 text-white" style="font-size:13px;">BL</span>
         </div>
-        <span class="font-display font-700 text-white text-lg">Invoify</span>
+        <span class="font-display font-700 text-white text-lg">Billify</span>
       </div>
 
       <div class="fade-up fade-up-1">
