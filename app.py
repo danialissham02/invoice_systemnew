@@ -7,7 +7,11 @@ from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date
 from io import BytesIO
-from xhtml2pdf import pisa
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
 import json
 
 app = Flask(__name__)
@@ -99,11 +103,100 @@ def update_overdue_invoices():
     db.session.commit()
 
 
-def generate_pdf_from_html(html_string):
-    pdf_buffer = BytesIO()
-    pisa.CreatePDF(BytesIO(html_string.encode('utf-8')), dest=pdf_buffer)
-    pdf_buffer.seek(0)
-    return pdf_buffer
+def generate_pdf_from_html(invoice, user):
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            rightMargin=2*cm, leftMargin=2*cm,
+                            topMargin=2*cm, bottomMargin=2*cm)
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Header
+    header_style = ParagraphStyle('header', fontSize=20, textColor=colors.HexColor('#2563eb'), fontName='Helvetica-Bold')
+    story.append(Paragraph('InvoiceFlow', header_style))
+    story.append(Paragraph(user.company or user.name, styles['Normal']))
+    story.append(Paragraph(user.email, styles['Normal']))
+    story.append(Spacer(1, 0.5*cm))
+
+    # Invoice number and status
+    story.append(Paragraph(f'<b>Invoice: {invoice.invoice_number}</b>', styles['Normal']))
+    story.append(Paragraph(f'Status: {invoice.status}', styles['Normal']))
+    story.append(Spacer(1, 0.3*cm))
+
+    # Client and dates
+    info_data = [
+        ['Bill To', 'Dates'],
+        [invoice.client_name, f'Issued: {invoice.issue_date.strftime("%d %b %Y")}'],
+        [invoice.client_email or '', f'Due: {invoice.due_date.strftime("%d %b %Y")}'],
+        [invoice.client_address or '', ''],
+    ]
+    info_table = Table(info_data, colWidths=[9*cm, 9*cm])
+    info_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f3f4f6')),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 10),
+        ('BOTTOMPADDING', (0,0), (-1,0), 8),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e5e7eb')),
+    ]))
+    story.append(info_table)
+    story.append(Spacer(1, 0.5*cm))
+
+    # Line items
+    item_data = [['Description', 'Qty', 'Unit Price', 'Amount']]
+    for item in invoice.items:
+        item_data.append([
+            item.description,
+            str(item.quantity),
+            f'RM {item.unit_price:.2f}',
+            f'RM {item.amount:.2f}'
+        ])
+    item_table = Table(item_data, colWidths=[9*cm, 2*cm, 4*cm, 3*cm])
+    item_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1e3a8a')),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 10),
+        ('ALIGN', (1,0), (-1,-1), 'RIGHT'),
+        ('BOTTOMPADDING', (0,0), (-1,0), 8),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f9fafb')]),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e5e7eb')),
+    ]))
+    story.append(item_table)
+    story.append(Spacer(1, 0.3*cm))
+
+    # Totals
+    totals_data = [
+        ['', 'Subtotal', f'RM {invoice.subtotal:.2f}'],
+        ['', f'Tax ({invoice.tax_percent}%)', f'RM {invoice.tax_amount:.2f}'],
+        ['', 'TOTAL', f'RM {invoice.total:.2f}'],
+    ]
+    totals_table = Table(totals_data, colWidths=[9*cm, 5*cm, 4*cm])
+    totals_table.setStyle(TableStyle([
+        ('FONTNAME', (1,2), (-1,2), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 10),
+        ('ALIGN', (1,0), (-1,-1), 'RIGHT'),
+        ('TEXTCOLOR', (2,2), (2,2), colors.HexColor('#2563eb')),
+        ('LINEABOVE', (1,2), (-1,2), 1, colors.black),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+    ]))
+    story.append(totals_table)
+
+    # Notes
+    if invoice.notes:
+        story.append(Spacer(1, 0.5*cm))
+        story.append(Paragraph('<b>Notes</b>', styles['Normal']))
+        story.append(Paragraph(invoice.notes, styles['Normal']))
+
+    # Footer
+    story.append(Spacer(1, 1*cm))
+    footer_style = ParagraphStyle('footer', fontSize=9, textColor=colors.HexColor('#9ca3af'), alignment=1)
+    story.append(Paragraph('Thank you for your business!', footer_style))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
 
 
 # ── Auth Routes ───────────────────────────────────────────────────────────────
