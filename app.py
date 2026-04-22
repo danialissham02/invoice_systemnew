@@ -459,7 +459,7 @@ def send_invoice(id):
         pdf_base64 = base64.b64encode(pdf.read()).decode('utf-8')
 
         response = requests.post(
-            'https://sandbox.api.mailtrap.io/api/send/inbox',
+            'https://sandbox.api.mailtrap.io/api/send/4565570',
             headers={
                 'Authorization': f'Bearer {MAILTRAP_TOKEN}',
                 'Content-Type': 'application/json'
