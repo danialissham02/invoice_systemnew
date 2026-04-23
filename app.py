@@ -19,6 +19,13 @@ from reportlab.lib.units import cm
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'invoice-system-secret-key-2024')
 
+# Security headers
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour session timeout
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max upload size
+
 # Database
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///invoices.db')
 if database_url.startswith('postgres://'):
@@ -34,6 +41,33 @@ migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
+
+# ── Security Headers ────────────────────────────────────────────────────────────
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    return response
+
+# ── Login attempt tracking ──────────────────────────────────────────────────────
+login_attempts = {}
+
+def check_rate_limit(email):
+    now = datetime.utcnow()
+    key = email.lower()
+    if key not in login_attempts:
+        login_attempts[key] = []
+    # Remove attempts older than 15 minutes
+    login_attempts[key] = [t for t in login_attempts[key] if (now - t).seconds < 900]
+    return len(login_attempts[key]) >= 5
+
+def record_login_attempt(email):
+    key = email.lower()
+    if key not in login_attempts:
+        login_attempts[key] = []
+    login_attempts[key].append(datetime.utcnow())
 
 
 # ── Models ─────────────────────────────────────────────────────────────────────
@@ -122,81 +156,154 @@ def generate_pdf_from_invoice(invoice, user):
     styles = getSampleStyleSheet()
     story = []
 
-    header_style = ParagraphStyle('header', fontSize=20, textColor=colors.HexColor('#2563eb'), fontName='Helvetica-Bold')
-    story.append(Paragraph('InvoiceFlow', header_style))
-    story.append(Paragraph(user.company or user.name, styles['Normal']))
-    story.append(Paragraph(user.email, styles['Normal']))
-    story.append(Spacer(1, 0.5*cm))
+    PURPLE = colors.HexColor('#6c47ff')
+    PURPLE_LIGHT = colors.HexColor('#ede9ff')
+    GRAY_BG = colors.HexColor('#f9fafb')
+    GRAY_BORDER = colors.HexColor('#e5e7eb')
+    MUTED = colors.HexColor('#6b7280')
+    DARK = colors.HexColor('#1f2937')
 
-    story.append(Paragraph(f'<b>Invoice: {invoice.invoice_number}</b>', styles['Normal']))
-    story.append(Paragraph(f'Status: {invoice.status}', styles['Normal']))
-    story.append(Spacer(1, 0.3*cm))
+    # ── Header: BL logo + Billify + sender info ──────────────────────────────
+    brand_style = ParagraphStyle('brand', fontSize=22, textColor=PURPLE,
+                                 fontName='Helvetica-Bold', leading=26)
+    sender_name_style = ParagraphStyle('sender', fontSize=12, textColor=DARK,
+                                       fontName='Helvetica-Bold', leading=16, spaceBefore=6)
+    sender_info_style = ParagraphStyle('senderinfo', fontSize=11, textColor=MUTED, leading=15)
+    inv_num_style = ParagraphStyle('invnum', fontSize=16, textColor=DARK,
+                                   fontName='Helvetica-Bold', alignment=2)
+    inv_label_style = ParagraphStyle('invlabel', fontSize=28, textColor=colors.HexColor('#e5e7eb'),
+                                     fontName='Helvetica-Bold', alignment=2, leading=32)
 
-    info_data = [
-        ['Bill To', 'Dates'],
-        [invoice.client_name, f'Issued: {invoice.issue_date.strftime("%d %b %Y")}'],
-        [invoice.client_email or '', f'Due: {invoice.due_date.strftime("%d %b %Y")}'],
-        [invoice.client_address or '', ''],
+    header_data = [
+        [
+            Paragraph('BL  Billify', brand_style),
+            Paragraph('INVOICE', inv_label_style)
+        ],
+        [
+            Paragraph(user.company or user.name, sender_name_style),
+            Paragraph(invoice.invoice_number, inv_num_style)
+        ],
+        [
+            Paragraph(user.email, sender_info_style),
+            Paragraph(f'<font color="#6c47ff"><b>{invoice.status}</b></font>', sender_info_style)
+        ],
     ]
-    info_table = Table(info_data, colWidths=[9*cm, 9*cm])
-    info_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f3f4f6')),
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,-1), 10),
-        ('BOTTOMPADDING', (0,0), (-1,0), 8),
-        ('TOPPADDING', (0,0), (-1,-1), 5),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e5e7eb')),
+    header_table = Table(header_data, colWidths=[10*cm, 8*cm])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('ALIGN', (1,0), (1,-1), 'RIGHT'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ('TOPPADDING', (0,0), (-1,-1), 2),
+        ('LINEBELOW', (0,2), (-1,2), 1, GRAY_BORDER),
     ]))
-    story.append(info_table)
+    story.append(header_table)
     story.append(Spacer(1, 0.5*cm))
 
+    # ── Bill To + Dates ───────────────────────────────────────────────────────
+    label_style = ParagraphStyle('label', fontSize=9, textColor=MUTED,
+                                 fontName='Helvetica-Bold', leading=12,
+                                 textTransform='uppercase', spaceBefore=0)
+    client_name_style = ParagraphStyle('clientname', fontSize=13, textColor=DARK,
+                                       fontName='Helvetica-Bold', leading=18)
+    client_info_style = ParagraphStyle('clientinfo', fontSize=11, textColor=MUTED, leading=15)
+    date_style = ParagraphStyle('date', fontSize=11, textColor=DARK, alignment=2, leading=16)
+
+    bill_data = [
+        [Paragraph('Bill To', label_style), Paragraph('Invoice Dates', label_style)],
+        [Paragraph(invoice.client_name, client_name_style),
+         Paragraph(f'Issued:  <b>{invoice.issue_date.strftime("%d %b %Y")}</b>', date_style)],
+        [Paragraph(invoice.client_email or '', client_info_style),
+         Paragraph(f'Due:  <font color="#6c47ff"><b>{invoice.due_date.strftime("%d %b %Y")}</b></font>', date_style)],
+    ]
+    if invoice.client_address:
+        bill_data.append([Paragraph(invoice.client_address, client_info_style), Paragraph('', client_info_style)])
+
+    bill_table = Table(bill_data, colWidths=[10*cm, 8*cm])
+    bill_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), GRAY_BG),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('LEFTPADDING', (0,0), (-1,-1), 10),
+        ('RIGHTPADDING', (0,0), (-1,-1), 10),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('ALIGN', (1,0), (1,-1), 'RIGHT'),
+        ('ROUNDEDCORNERS', [6, 6, 6, 6]),
+    ]))
+    story.append(bill_table)
+    story.append(Spacer(1, 0.5*cm))
+
+    # ── Line Items ────────────────────────────────────────────────────────────
     item_data = [['Description', 'Qty', 'Unit Price', 'Amount']]
     for item in invoice.items:
         item_data.append([
             item.description,
-            str(item.quantity),
+            str(int(item.quantity) if item.quantity == int(item.quantity) else item.quantity),
             f'RM {item.unit_price:.2f}',
             f'RM {item.amount:.2f}'
         ])
     item_table = Table(item_data, colWidths=[9*cm, 2*cm, 4*cm, 3*cm])
+    row_bgs = [GRAY_BG if i % 2 == 0 else colors.white for i in range(len(item_data) - 1)]
     item_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1e3a8a')),
+        ('BACKGROUND', (0,0), (-1,0), PURPLE),
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
         ('FONTSIZE', (0,0), (-1,-1), 10),
         ('ALIGN', (1,0), (-1,-1), 'RIGHT'),
         ('BOTTOMPADDING', (0,0), (-1,0), 8),
-        ('TOPPADDING', (0,0), (-1,-1), 5),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f9fafb')]),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e5e7eb')),
+        ('TOPPADDING', (0,0), (-1,-1), 7),
+        ('BOTTOMPADDING', (0,1), (-1,-1), 7),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, GRAY_BG]),
+        ('GRID', (0,0), (-1,-1), 0.5, GRAY_BORDER),
     ]))
     story.append(item_table)
     story.append(Spacer(1, 0.3*cm))
 
+    # ── Totals ────────────────────────────────────────────────────────────────
     totals_data = [
         ['', 'Subtotal', f'RM {invoice.subtotal:.2f}'],
         ['', f'Tax ({invoice.tax_percent}%)', f'RM {invoice.tax_amount:.2f}'],
-        ['', 'TOTAL', f'RM {invoice.total:.2f}'],
+        ['', 'TOTAL DUE', f'RM {invoice.total:.2f}'],
     ]
     totals_table = Table(totals_data, colWidths=[9*cm, 5*cm, 4*cm])
     totals_table.setStyle(TableStyle([
         ('FONTNAME', (1,2), (-1,2), 'Helvetica-Bold'),
         ('FONTSIZE', (0,0), (-1,-1), 10),
+        ('FONTSIZE', (1,2), (-1,2), 12),
         ('ALIGN', (1,0), (-1,-1), 'RIGHT'),
-        ('TEXTCOLOR', (2,2), (2,2), colors.HexColor('#2563eb')),
-        ('LINEABOVE', (1,2), (-1,2), 1, colors.black),
-        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('TEXTCOLOR', (2,2), (2,2), PURPLE),
+        ('TEXTCOLOR', (1,0), (1,1), MUTED),
+        ('LINEABOVE', (1,2), (-1,2), 1.5, PURPLE),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
     ]))
     story.append(totals_table)
 
+    # ── Notes ─────────────────────────────────────────────────────────────────
     if invoice.notes:
         story.append(Spacer(1, 0.5*cm))
-        story.append(Paragraph('<b>Notes</b>', styles['Normal']))
-        story.append(Paragraph(invoice.notes, styles['Normal']))
+        notes_label = ParagraphStyle('noteslabel', fontSize=9, textColor=PURPLE,
+                                     fontName='Helvetica-Bold', textTransform='uppercase')
+        notes_body = ParagraphStyle('notesbody', fontSize=11, textColor=DARK, leading=16)
+        notes_data = [
+            [Paragraph('Notes', notes_label)],
+            [Paragraph(invoice.notes, notes_body)],
+        ]
+        notes_table = Table(notes_data, colWidths=[18*cm])
+        notes_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), PURPLE_LIGHT),
+            ('LEFTPADDING', (0,0), (-1,-1), 12),
+            ('RIGHTPADDING', (0,0), (-1,-1), 12),
+            ('TOPPADDING', (0,0), (-1,-1), 8),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+            ('LINEAFTER', (0,0), (0,-1), 3, PURPLE),
+        ]))
+        story.append(notes_table)
 
+    # ── Footer ────────────────────────────────────────────────────────────────
     story.append(Spacer(1, 1*cm))
-    footer_style = ParagraphStyle('footer', fontSize=9, textColor=colors.HexColor('#9ca3af'), alignment=1)
-    story.append(Paragraph('Thank you for your business!', footer_style))
+    footer_style = ParagraphStyle('footer', fontSize=9, textColor=MUTED,
+                                  alignment=1, leading=14)
+    story.append(Paragraph('<font color="#6c47ff"><b>Billify</b></font> — Thank you for your business!', footer_style))
 
     doc.build(story)
     buffer.seek(0)
@@ -219,10 +326,17 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
+
+        if check_rate_limit(email):
+            flash('Too many failed login attempts. Please wait 15 minutes and try again.', 'error')
+            return render_template('login.html')
+
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for('dashboard'))
+
+        record_login_attempt(email)
         flash('Invalid email or password.', 'error')
     return render_template('login.html')
 
@@ -240,6 +354,8 @@ def register():
 
         if not name or not email or not password:
             flash('Name, email, and password are required.', 'error')
+        elif len(password) < 8:
+            flash('Password must be at least 8 characters long.', 'error')
         elif password != confirm:
             flash('Passwords do not match.', 'error')
         elif User.query.filter_by(email=email).first():
@@ -626,7 +742,16 @@ def revenue_forecast():
 
 # ── Top Clients API ─────────────────────────────────────────────────────────────
 
-
+@app.route('/api/top-clients')
+@login_required
+def top_clients():
+    from collections import defaultdict
+    invoices = Invoice.query.filter_by(user_id=current_user.id, status='Paid').all()
+    clients = defaultdict(float)
+    for inv in invoices:
+        clients[inv.client_name] += inv.total
+    sorted_clients = sorted(clients.items(), key=lambda x: x[1], reverse=True)[:6]
+    return jsonify([{'client': c, 'revenue': round(r, 2)} for c, r in sorted_clients])
 
 
 # ── Monthly Summary API ──────────────────────────────────────────────────────────
@@ -757,6 +882,21 @@ def import_csv():
     return render_template('import_csv.html')
 
 
+# ── Reports Page ─────────────────────────────────────────────────────────────────
+
+@app.route('/reports')
+@login_required
+def reports():
+    invoices = Invoice.query.filter_by(user_id=current_user.id).all()
+    total_invoices = len(invoices)
+    total_paid = sum(1 for i in invoices if i.status == 'Paid')
+    total_revenue = sum(i.total for i in invoices if i.status == 'Paid')
+    total_outstanding = sum(i.total for i in invoices if i.status in ('Unpaid', 'Overdue'))
+    return render_template('reports.html',
+        total_invoices=total_invoices,
+        total_paid=total_paid,
+        total_revenue=total_revenue,
+        total_outstanding=total_outstanding)
 
 
 # ── Bulk Delete ──────────────────────────────────────────────────────────────────
