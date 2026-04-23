@@ -626,16 +626,7 @@ def revenue_forecast():
 
 # ── Top Clients API ─────────────────────────────────────────────────────────────
 
-@app.route('/api/top-clients')
-@login_required
-def top_clients():
-    from collections import defaultdict
-    invoices = Invoice.query.filter_by(user_id=current_user.id, status='Paid').all()
-    clients = defaultdict(float)
-    for inv in invoices:
-        clients[inv.client_name] += inv.total
-    sorted_clients = sorted(clients.items(), key=lambda x: x[1], reverse=True)[:6]
-    return jsonify([{'client': c, 'revenue': round(r, 2)} for c, r in sorted_clients])
+
 
 
 # ── Monthly Summary API ──────────────────────────────────────────────────────────
@@ -766,21 +757,6 @@ def import_csv():
     return render_template('import_csv.html')
 
 
-# ── Reports Page ─────────────────────────────────────────────────────────────────
-
-@app.route('/reports')
-@login_required
-def reports():
-    invoices = Invoice.query.filter_by(user_id=current_user.id).all()
-    total_invoices = len(invoices)
-    total_paid = sum(1 for i in invoices if i.status == 'Paid')
-    total_revenue = sum(i.total for i in invoices if i.status == 'Paid')
-    total_outstanding = sum(i.total for i in invoices if i.status in ('Unpaid', 'Overdue'))
-    return render_template('reports.html',
-        total_invoices=total_invoices,
-        total_paid=total_paid,
-        total_revenue=total_revenue,
-        total_outstanding=total_outstanding)
 
 
 # ── Bulk Delete ──────────────────────────────────────────────────────────────────
