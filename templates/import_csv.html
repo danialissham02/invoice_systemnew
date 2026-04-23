@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Import CSV — Billify{% endblock %}
+
+{% block content %}
+<div class="mb-8 fade-up fade-up-1">
+  <h2 class="font-display font-700" style="font-size:26px;letter-spacing:-0.5px;color:var(--text);">Import CSV</h2>
+  <p style="color:var(--muted);font-size:14px;margin-top:4px;">Bulk upload invoices from a CSV file instead of entering them one by one.</p>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+  <!-- Upload Card -->
+  <div class="xl:col-span-2 fade-up fade-up-2">
+    <div class="card p-8">
+      <form method="POST" enctype="multipart/form-data" id="uploadForm">
+
+        <!-- Drop Zone -->
+        <div id="dropZone"
+          style="border:2px dashed var(--border);border-radius:14px;padding:48px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--surface);"
+          ondragover="event.preventDefault();this.style.borderColor='#6c47ff';this.style.background='#f5f3ff';"
+          ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--surface)';"
+          ondrop="handleDrop(event)"
+          onclick="document.getElementById('csv_file').click()">
+          <div style="width:52px;height:52px;background:#ede9ff;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+            <svg style="width:24px;height:24px;color:#6c47ff;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          </div>
+          <div class="font-display font-600" style="font-size:16px;color:var(--text);margin-bottom:6px;">Drop your CSV file here</div>
+          <div style="font-size:13px;color:var(--muted);">or click to browse files</div>
+          <div id="fileName" style="margin-top:12px;font-size:13px;color:#6c47ff;font-weight:500;display:none;"></div>
+        </div>
+
+        <input type="file" id="csv_file" name="csv_file" accept=".csv" style="display:none;" onchange="showFileName(this)" />
+
+        <button type="submit" class="btn-primary" style="width:100%;padding:13px;font-size:14px;border:none;cursor:pointer;margin-top:20px;">
+          Upload & Import
+        </button>
+      </form>
+    </div>
+
+    <!-- Preview Table (shown after file selected) -->
+    <div id="previewSection" class="card mt-4" style="display:none;">
+      <div class="px-6 py-4" style="border-bottom:1px solid var(--border);">
+        <div class="font-display font-600" style="font-size:14px;">File Preview</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">First few rows of your CSV</div>
+      </div>
+      <div style="overflow-x:auto;padding:16px;">
+        <div id="previewContent" style="font-size:12px;color:var(--muted);font-family:monospace;white-space:pre;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Instructions -->
+  <div class="space-y-4 fade-up fade-up-3">
+
+    <!-- Download Template -->
+    <div class="card p-5">
+      <div class="font-display font-600" style="font-size:14px;margin-bottom:4px;">Download Template</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Use this template to format your data correctly.</div>
+      <a href="{{ url_for('download_template') }}"
+        style="display:block;text-align:center;background:#ede9ff;color:#6c47ff;border-radius:10px;padding:10px;font-size:13px;font-weight:600;text-decoration:none;transition:background 0.15s;"
+        onmouseover="this.style.background='#ddd6fe'" onmouseout="this.style.background='#ede9ff'">
+        Download CSV Template
+      </a>
+    </div>
+
+    <!-- Column Guide -->
+    <div class="card p-5">
+      <div class="font-display font-600" style="font-size:14px;margin-bottom:12px;">Required Columns</div>
+      <div class="space-y-2">
+        {% set cols = [
+          ('client_name', 'required', 'Name of the client'),
+          ('issue_date', 'required', 'Format: YYYY-MM-DD'),
+          ('due_date', 'required', 'Format: YYYY-MM-DD'),
+          ('item_description', 'required', 'What was sold/done'),
+          ('item_quantity', 'required', 'Number e.g. 2'),
+          ('item_unit_price', 'required', 'Price e.g. 500.00'),
+          ('client_email', 'optional', 'Client email'),
+          ('client_address', 'optional', 'Client address'),
+          ('status', 'optional', 'Draft/Unpaid/Paid'),
+          ('tax_percent', 'optional', 'e.g. 6 for 6%'),
+          ('notes', 'optional', 'Any extra notes'),
+        ] %}
+        {% for col, req, desc in cols %}
+        <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
+          <span style="font-family:monospace;font-size:11px;background:{% if req == 'required' %}#ede9ff{% else %}var(--surface){% endif %};color:{% if req == 'required' %}#6c47ff{% else %}var(--muted){% endif %};padding:2px 7px;border-radius:5px;flex-shrink:0;margin-top:1px;">{{ col }}</span>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:{% if req == 'required' %}#6c47ff{% else %}var(--muted){% endif %};">{{ req }}</div>
+            <div style="font-size:11px;color:var(--muted);">{{ desc }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Tips -->
+    <div class="card p-5" style="background:#ede9ff;border-color:#c4b5fd;">
+      <div class="font-display font-600" style="font-size:13px;color:#4a2fe0;margin-bottom:8px;">Tips</div>
+      <ul style="font-size:12px;color:#5b21b6;space-y:4px;list-style:none;padding:0;">
+        <li style="margin-bottom:6px;">• Save your file as CSV (comma separated)</li>
+        <li style="margin-bottom:6px;">• Dates must be in YYYY-MM-DD format</li>
+        <li style="margin-bottom:6px;">• One row = one invoice with one line item</li>
+        <li style="margin-bottom:6px;">• Leave optional columns blank if not needed</li>
+        <li>• Max recommended: 500 rows per upload</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showFileName(input) {
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    document.getElementById('fileName').textContent = '✓ ' + file.name;
+    document.getElementById('fileName').style.display = 'block';
+    previewFile(file);
+  }
+}
+
+function handleDrop(event) {
+  event.preventDefault();
+  const dz = document.getElementById('dropZone');
+  dz.style.borderColor = 'var(--border)';
+  dz.style.background = 'var(--surface)';
+  const file = event.dataTransfer.files[0];
+  if (file && file.name.endsWith('.csv')) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('csv_file').files = dt.files;
+    document.getElementById('fileName').textContent = '✓ ' + file.name;
+    document.getElementById('fileName').style.display = 'block';
+    previewFile(file);
+  }
+}
+
+function previewFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const lines = e.target.result.split('\n').slice(0, 6);
+    document.getElementById('previewContent').textContent = lines.join('\n');
+    document.getElementById('previewSection').style.display = 'block';
+  };
+  reader.readAsText(file);
+}
+</script>
+{% endblock %}

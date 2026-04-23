@@ -512,10 +512,64 @@ def send_invoice(id):
 
 # ── Reports Page ───────────────────────────────────────────────────────────────
 
+@app.route('/reports')
+@login_required
+def reports():
+    update_overdue_invoices()
+    invoices = Invoice.query.filter_by(user_id=current_user.id).all()
+
+    from collections import defaultdict
+    monthly_data = defaultdict(lambda: {'sent': 0, 'paid': 0, 'overdue': 0, 'revenue': 0.0})
+    for inv in invoices:
+        key = inv.issue_date.strftime('%b %Y')
+        monthly_data[key]['sent'] += 1
+        if inv.status == 'Paid':
+            monthly_data[key]['paid'] += 1
+            monthly_data[key]['revenue'] += inv.total
+        if inv.status == 'Overdue':
+            monthly_data[key]['overdue'] += 1
+
+    sorted_months = sorted(monthly_data.items(),
+        key=lambda x: datetime.strptime(x[0], '%b %Y'), reverse=True)
+
+    summary = []
+    for month, data in sorted_months:
+        rate = round((data['paid'] / data['sent'] * 100)) if data['sent'] > 0 else 0
+        summary.append({
+            'month': month,
+            'sent': data['sent'],
+            'paid': data['paid'],
+            'overdue': data['overdue'],
+            'revenue': round(data['revenue'], 2),
+            'rate': rate
+        })
+
+    total_revenue = sum(i.total for i in invoices if i.status == 'Paid')
+    total_sent = len(invoices)
+    total_paid = sum(1 for i in invoices if i.status == 'Paid')
+    overall_rate = round((total_paid / total_sent * 100)) if total_sent > 0 else 0
+
+    return render_template('reports.html',
+        summary=summary,
+        total_revenue=total_revenue,
+        total_sent=total_sent,
+        total_paid=total_paid,
+        overall_rate=overall_rate
+    )
 
 
 # ── Top Clients API ─────────────────────────────────────────────────────────────
 
+@app.route('/api/top-clients')
+@login_required
+def top_clients():
+    from collections import defaultdict
+    invoices = Invoice.query.filter_by(user_id=current_user.id, status='Paid').all()
+    clients = defaultdict(float)
+    for inv in invoices:
+        clients[inv.client_name] += inv.total
+    sorted_clients = sorted(clients.items(), key=lambda x: x[1], reverse=True)[:6]
+    return jsonify([{'client': k, 'revenue': round(v, 2)} for k, v in sorted_clients])
 
 
 # ── Revenue Forecast API ────────────────────────────────────────────────────────
@@ -597,6 +651,109 @@ def monthly_summary():
         result.append({'month': month, 'sent': data['sent'], 'paid': data['paid'],
                        'overdue': data['overdue'], 'revenue': round(data['revenue'], 2), 'rate': rate})
     return jsonify(result)
+
+
+@app.route('/import/template')
+@login_required
+def download_template():
+    import csv
+    import io
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['client_name','client_email','client_address','issue_date','due_date','status','tax_percent','notes','item_description','item_quantity','item_unit_price'])
+    writer.writerow(['Ahmad Sdn Bhd','ahmad@example.com','No 1 Jalan Merdeka KL','2026-01-01','2026-01-31','Unpaid','6','Thank you','Web Design Services','1','2500.00'])
+    writer.writerow(['Sara Enterprise','sara@example.com','','2026-02-01','2026-02-28','Paid','0','','Monthly Maintenance','1','800.00'])
+    output.seek(0)
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv'
+    response.headers['Content-Disposition'] = 'attachment; filename=billify_import_template.csv'
+    return response
+
+
+# ── CSV Import ──────────────────────────────────────────────────────────────────
+
+@app.route('/import', methods=['GET', 'POST'])
+@login_required
+def import_csv():
+    if request.method == 'POST':
+        file = request.files.get('csv_file')
+        if not file or not file.filename.endswith('.csv'):
+            flash('Please upload a valid CSV file.', 'error')
+            return redirect(url_for('import_csv'))
+
+        import csv
+        import io
+
+        stream = io.StringIO(file.stream.read().decode('utf-8-sig'))
+        reader = csv.DictReader(stream)
+
+        success = 0
+        errors = []
+
+        for i, row in enumerate(reader, start=2):
+            try:
+                # Clean keys
+                row = {k.strip(): v.strip() for k, v in row.items() if k}
+
+                client_name = row.get('client_name', '').strip()
+                if not client_name:
+                    errors.append(f'Row {i}: Missing client_name')
+                    continue
+
+                issue_date = datetime.strptime(row.get('issue_date', '').strip(), '%Y-%m-%d').date()
+                due_date = datetime.strptime(row.get('due_date', '').strip(), '%Y-%m-%d').date()
+
+                tax_percent = float(row.get('tax_percent', 0) or 0)
+                quantity = float(row.get('item_quantity', 1) or 1)
+                unit_price = float(row.get('item_unit_price', 0) or 0)
+                amount = round(quantity * unit_price, 2)
+                subtotal = amount
+                tax_amount = round(subtotal * tax_percent / 100, 2)
+                total = round(subtotal + tax_amount, 2)
+
+                inv = Invoice(
+                    invoice_number=generate_invoice_number(current_user.id),
+                    client_name=client_name,
+                    client_email=row.get('client_email', '').strip(),
+                    client_address=row.get('client_address', '').strip(),
+                    issue_date=issue_date,
+                    due_date=due_date,
+                    status=row.get('status', 'Draft').strip() or 'Draft',
+                    tax_percent=tax_percent,
+                    tax_amount=tax_amount,
+                    subtotal=subtotal,
+                    total=total,
+                    notes=row.get('notes', '').strip(),
+                    user_id=current_user.id
+                )
+                db.session.add(inv)
+                db.session.flush()
+
+                description = row.get('item_description', 'Service').strip() or 'Service'
+                item = InvoiceItem(
+                    invoice_id=inv.id,
+                    description=description,
+                    quantity=quantity,
+                    unit_price=unit_price,
+                    amount=amount
+                )
+                db.session.add(item)
+                db.session.commit()
+                success += 1
+
+            except Exception as e:
+                db.session.rollback()
+                errors.append(f'Row {i}: {str(e)}')
+
+        if success:
+            flash(f'Successfully imported {success} invoice(s)!', 'success')
+        if errors:
+            for err in errors[:5]:
+                flash(err, 'error')
+
+        return redirect(url_for('import_csv'))
+
+    return render_template('import_csv.html')
 
 
 # ── Reports Page ─────────────────────────────────────────────────────────────────
