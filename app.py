@@ -742,7 +742,6 @@ def revenue_forecast():
 
 
 
-
 # ── Monthly Summary API ──────────────────────────────────────────────────────────
 
 @app.route('/api/monthly-summary')
@@ -776,8 +775,8 @@ def download_template():
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(['client_name','client_email','client_address','issue_date','due_date','status','tax_percent','notes','item_description','item_quantity','item_unit_price'])
-    writer.writerow(['Ahmad Sdn Bhd','ahmad@example.com','No 1 Jalan Merdeka KL','2026-01-01','2026-01-31','Unpaid','6','Thank you','Web Design Services','1','2500.00'])
-    writer.writerow(['Sara Enterprise','sara@example.com','','2026-02-01','2026-02-28','Paid','0','','Monthly Maintenance','1','800.00'])
+    writer.writerow(['Ahmad Sdn Bhd','ahmad@example.com','No 1 Jalan Merdeka KL','01-01-2026','31-01-2026','Unpaid','6','Thank you','Web Design Services','1','2500.00'])
+    writer.writerow(['Sara Enterprise','sara@example.com','','01-02-2026','28-02-2026','Paid','0','','Monthly Maintenance','1','800.00'])
     output.seek(0)
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
@@ -815,8 +814,20 @@ def import_csv():
                     errors.append(f'Row {i}: Missing client_name')
                     continue
 
-                issue_date = datetime.strptime(row.get('issue_date', '').strip(), '%Y-%m-%d').date()
-                due_date = datetime.strptime(row.get('due_date', '').strip(), '%Y-%m-%d').date()
+                issue_date_str = row.get('issue_date', '').strip()
+                due_date_str = row.get('due_date', '').strip()
+
+                # Try DD-MM-YYYY first, then YYYY-MM-DD as fallback
+                def parse_date(s):
+                    for fmt in ('%d-%m-%Y', '%d/%m/%Y', '%Y-%m-%d'):
+                        try:
+                            return datetime.strptime(s, fmt).date()
+                        except ValueError:
+                            continue
+                    raise ValueError(f"Date '{s}' must be in DD-MM-YYYY format (e.g. 31-01-2026)")
+
+                issue_date = parse_date(issue_date_str)
+                due_date = parse_date(due_date_str)
 
                 tax_percent = float(row.get('tax_percent', 0) or 0)
                 quantity = float(row.get('item_quantity', 1) or 1)
@@ -869,6 +880,7 @@ def import_csv():
         return redirect(url_for('import_csv'))
 
     return render_template('import_csv.html')
+
 
 
 

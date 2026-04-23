@@ -69,8 +69,8 @@
       <div class="space-y-2">
         {% set cols = [
           ('client_name', 'required', 'Name of the client'),
-          ('issue_date', 'required', 'Format: YYYY-MM-DD'),
-          ('due_date', 'required', 'Format: YYYY-MM-DD'),
+          ('issue_date', 'required', 'Format: DD-MM-YYYY e.g. 31-01-2026'),
+          ('due_date', 'required', 'Format: DD-MM-YYYY e.g. 28-02-2026'),
           ('item_description', 'required', 'What was sold/done'),
           ('item_quantity', 'required', 'Number e.g. 2'),
           ('item_unit_price', 'required', 'Price e.g. 500.00'),
@@ -97,7 +97,7 @@
       <div class="font-display font-600" style="font-size:13px;color:#4a2fe0;margin-bottom:8px;">Tips</div>
       <ul style="font-size:12px;color:#5b21b6;space-y:4px;list-style:none;padding:0;">
         <li style="margin-bottom:6px;">• Save your file as CSV (comma separated)</li>
-        <li style="margin-bottom:6px;">• Dates must be in YYYY-MM-DD format</li>
+        <li style="margin-bottom:6px;">• Dates must be in DD-MM-YYYY format e.g. 31-01-2026</li>
         <li style="margin-bottom:6px;">• One row = one invoice with one line item</li>
         <li style="margin-bottom:6px;">• Leave optional columns blank if not needed</li>
         <li>• Max recommended: 500 rows per upload</li>
