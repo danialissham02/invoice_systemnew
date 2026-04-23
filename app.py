@@ -76,6 +76,16 @@ class InvoiceItem(db.Model):
     amount = db.Column(db.Float, default=0.0)
 
 
+class Feedback(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+    category = db.Column(db.String(50))
+    message = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref='feedbacks')
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -614,6 +624,18 @@ def revenue_forecast():
     })
 
 
+# ── Top Clients API ─────────────────────────────────────────────────────────────
+
+@app.route('/api/top-clients')
+@login_required
+def top_clients():
+    from collections import defaultdict
+    invoices = Invoice.query.filter_by(user_id=current_user.id, status='Paid').all()
+    clients = defaultdict(float)
+    for inv in invoices:
+        clients[inv.client_name] += inv.total
+    sorted_clients = sorted(clients.items(), key=lambda x: x[1], reverse=True)[:6]
+    return jsonify([{'client': c, 'revenue': round(r, 2)} for c, r in sorted_clients])
 
 
 # ── Monthly Summary API ──────────────────────────────────────────────────────────
@@ -744,7 +766,79 @@ def import_csv():
     return render_template('import_csv.html')
 
 
-# ── Reports Page ────────────────────────────────────────────────────────────────
+# ── Reports Page ─────────────────────────────────────────────────────────────────
+
+@app.route('/reports')
+@login_required
+def reports():
+    invoices = Invoice.query.filter_by(user_id=current_user.id).all()
+    total_invoices = len(invoices)
+    total_paid = sum(1 for i in invoices if i.status == 'Paid')
+    total_revenue = sum(i.total for i in invoices if i.status == 'Paid')
+    total_outstanding = sum(i.total for i in invoices if i.status in ('Unpaid', 'Overdue'))
+    return render_template('reports.html',
+        total_invoices=total_invoices,
+        total_paid=total_paid,
+        total_revenue=total_revenue,
+        total_outstanding=total_outstanding)
+
+
+# ── Bulk Delete ──────────────────────────────────────────────────────────────────
+
+@app.route('/invoices/bulk-delete', methods=['POST'])
+@login_required
+def bulk_delete():
+    ids = request.form.getlist('invoice_ids')
+    if not ids:
+        flash('No invoices selected.', 'error')
+        return redirect(url_for('invoices'))
+    deleted = 0
+    for id in ids:
+        inv = Invoice.query.filter_by(id=int(id), user_id=current_user.id).first()
+        if inv:
+            db.session.delete(inv)
+            deleted += 1
+    db.session.commit()
+    flash(f'Successfully deleted {deleted} invoice(s).', 'success')
+    return redirect(url_for('invoices'))
+
+
+# ── Feedback ─────────────────────────────────────────────────────────────────────
+
+@app.route('/feedback', methods=['GET', 'POST'])
+@login_required
+def feedback():
+    if request.method == 'POST':
+        rating = request.form.get('rating')
+        category = request.form.get('category', '').strip()
+        message = request.form.get('message', '').strip()
+        if not rating:
+            flash('Please select a rating.', 'error')
+            return redirect(url_for('feedback'))
+        fb = Feedback(
+            user_id=current_user.id,
+            rating=int(rating),
+            category=category,
+            message=message
+        )
+        db.session.add(fb)
+        db.session.commit()
+        flash('Thank you for your feedback!', 'success')
+        return redirect(url_for('feedback'))
+
+    feedbacks = Feedback.query.order_by(Feedback.created_at.desc()).limit(20).all()
+    avg_rating = db.session.query(db.func.avg(Feedback.rating)).scalar() or 0
+    total_ratings = Feedback.query.count()
+    star_counts = {}
+    for i in range(1, 6):
+        star_counts[i] = Feedback.query.filter_by(rating=i).count()
+    return render_template('feedback.html',
+        feedbacks=feedbacks,
+        avg_rating=round(float(avg_rating), 1),
+        total_ratings=total_ratings,
+        star_counts=star_counts)
+
+
 # ── Run ─────────────────────────────────────────────────────────────────────────
 
 with app.app_context():

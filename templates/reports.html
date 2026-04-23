@@ -1,8 +1,5 @@
 {% extends 'base.html' %}
 {% block title %}Reports — Billify{% endblock %}
-{% block head %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-{% endblock %}
 
 {% block content %}
 <div class="mb-8 fade-up fade-up-1">
@@ -10,11 +7,11 @@
   <p style="color:var(--muted);font-size:14px;margin-top:4px;">A full breakdown of your invoicing activity over time.</p>
 </div>
 
-<!-- Summary KPI Cards -->
+<!-- KPI Cards -->
 <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6 fade-up fade-up-2">
   <div class="card p-5">
     <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Total Invoices</div>
-    <div class="font-display font-700" style="font-size:28px;letter-spacing:-0.5px;">{{ total_invoices }}</div>
+    <div class="font-display font-700" style="font-size:28px;letter-spacing:-0.5px;">{{ total_sent }}</div>
   </div>
   <div class="card p-5">
     <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Paid Invoices</div>
@@ -25,8 +22,8 @@
     <div class="font-display font-700" style="font-size:28px;letter-spacing:-0.5px;color:#6c47ff;">RM {{ "%.2f"|format(total_revenue) }}</div>
   </div>
   <div class="card p-5">
-    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Outstanding</div>
-    <div class="font-display font-700" style="font-size:28px;letter-spacing:-0.5px;color:#854d0e;">RM {{ "%.2f"|format(total_outstanding) }}</div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Overall Pay Rate</div>
+    <div class="font-display font-700" style="font-size:28px;letter-spacing:-0.5px;color:#854d0e;">{{ overall_rate }}%</div>
   </div>
 </div>
 
@@ -34,12 +31,11 @@
 <div class="card fade-up fade-up-3">
   <div class="px-6 py-5" style="border-bottom:1px solid var(--border);">
     <div class="font-display font-600" style="font-size:15px;">Monthly Invoice Summary</div>
-    <div style="font-size:12px;color:var(--muted);margin-top:2px;">Last 6 months of invoicing activity</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:2px;">Full history of invoicing activity by month</div>
   </div>
 
-  <div id="summaryLoading" style="padding:40px;text-align:center;color:var(--muted);font-size:13px;">Loading...</div>
-
-  <div id="summaryTable" style="display:none;overflow-x:auto;">
+  {% if summary %}
+  <div style="overflow-x:auto;">
     <table style="width:100%;font-size:13px;border-collapse:collapse;">
       <thead>
         <tr style="border-bottom:1px solid var(--border);">
@@ -51,51 +47,39 @@
           <th style="padding:12px 24px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Pay Rate</th>
         </tr>
       </thead>
-      <tbody id="summaryBody"></tbody>
+      <tbody>
+        {% for row in summary %}
+        <tr style="border-bottom:1px solid var(--border);{% if loop.index % 2 == 0 %}background:var(--surface);{% endif %}" onmouseover="this.style.background='#f5f3ff'" onmouseout="this.style.background='{% if loop.index % 2 == 0 %}var(--surface){% else %}transparent{% endif %}'">
+          <td style="padding:14px 24px;font-weight:600;color:var(--text);">{{ row.month }}</td>
+          <td style="padding:14px 24px;text-align:center;color:var(--muted);">{{ row.sent }}</td>
+          <td style="padding:14px 24px;text-align:center;">
+            <span style="background:#dcfce7;color:#166534;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">{{ row.paid }}</span>
+          </td>
+          <td style="padding:14px 24px;text-align:center;">
+            {% if row.overdue > 0 %}
+            <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">{{ row.overdue }}</span>
+            {% else %}
+            <span style="background:#f1f5f9;color:#475569;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">0</span>
+            {% endif %}
+          </td>
+          <td style="padding:14px 24px;text-align:right;font-weight:600;color:var(--text);">RM {{ "%.2f"|format(row.revenue) }}</td>
+          <td style="padding:14px 24px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="flex:1;height:5px;background:var(--border);border-radius:3px;max-width:80px;">
+                <div style="width:{{ row.rate }}%;height:100%;background:linear-gradient(90deg,#6c47ff,#9b6dff);border-radius:3px;"></div>
+              </div>
+              <span style="font-size:12px;color:var(--muted);min-width:34px;">{{ row.rate }}%</span>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
     </table>
   </div>
-
-  <div id="summaryEmpty" style="display:none;padding:60px;text-align:center;">
+  {% else %}
+  <div style="padding:60px;text-align:center;">
     <p style="color:var(--muted);font-size:14px;">No invoice data yet.</p>
   </div>
+  {% endif %}
 </div>
-
-{% endblock %}
-
-{% block scripts %}
-<script>
-fetch('/api/monthly-summary').then(r => r.json()).then(data => {
-  document.getElementById('summaryLoading').style.display = 'none';
-  if (!data.length) {
-    document.getElementById('summaryEmpty').style.display = 'block';
-    return;
-  }
-  document.getElementById('summaryTable').style.display = 'block';
-  const tbody = document.getElementById('summaryBody');
-  data.forEach((row, i) => {
-    const bg = i % 2 === 0 ? 'transparent' : 'var(--surface)';
-    const overdueBadge = row.overdue > 0
-      ? `<span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">${row.overdue}</span>`
-      : `<span style="background:#f1f5f9;color:#475569;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">0</span>`;
-    tbody.innerHTML += `
-      <tr style="border-bottom:1px solid var(--border);background:${bg};">
-        <td style="padding:14px 24px;font-weight:600;color:var(--text);">${row.month}</td>
-        <td style="padding:14px 24px;text-align:center;color:var(--muted);">${row.sent}</td>
-        <td style="padding:14px 24px;text-align:center;">
-          <span style="background:#dcfce7;color:#166534;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">${row.paid}</span>
-        </td>
-        <td style="padding:14px 24px;text-align:center;">${overdueBadge}</td>
-        <td style="padding:14px 24px;text-align:right;font-weight:600;color:var(--text);">RM ${row.revenue.toLocaleString('en-MY', {minimumFractionDigits:2})}</td>
-        <td style="padding:14px 24px;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="flex:1;height:5px;background:var(--border);border-radius:3px;max-width:80px;">
-              <div style="width:${row.rate}%;height:100%;background:linear-gradient(90deg,#6c47ff,#9b6dff);border-radius:3px;"></div>
-            </div>
-            <span style="font-size:12px;color:var(--muted);min-width:34px;">${row.rate}%</span>
-          </div>
-        </td>
-      </tr>`;
-  });
-});
-</script>
 {% endblock %}
