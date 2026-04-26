@@ -1120,3 +1120,16 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(debug=True)
+
+
+@app.route('/setup-admin/<secret_key>', methods=['GET'])
+def setup_admin(secret_key):
+    if secret_key != 'billify_setup_2024':
+        return 'Invalid', 403
+    with app.app_context():
+        user = User.query.order_by(User.id.desc()).first()
+        if user:
+            user.is_admin = True
+            db.session.commit()
+            return f'✓ Admin granted to {user.name}!'
+        return 'No users found', 404
