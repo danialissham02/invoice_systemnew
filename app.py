@@ -78,6 +78,8 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     company = db.Column(db.String(100))
+    is_admin = db.Column(db.Boolean, default=False)
+    is_active_account = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     invoices = db.relationship('Invoice', backref='owner', lazy=True)
 
@@ -333,6 +335,9 @@ def login():
 
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password):
+            if not user.is_active_account:
+                flash('Your account has been deactivated. Please contact the administrator.', 'error')
+                return render_template('login.html')
             login_user(user)
             return redirect(url_for('dashboard'))
 
@@ -686,6 +691,7 @@ def reports():
 
 
 
+
 # ── Revenue Forecast API ────────────────────────────────────────────────────────
 
 @app.route('/api/revenue-forecast')
@@ -884,7 +890,6 @@ def import_csv():
 
 
 
-
 # ── Bulk Delete ──────────────────────────────────────────────────────────────────
 
 @app.route('/invoices/bulk-delete', methods=['POST'])
@@ -939,6 +944,171 @@ def feedback():
         avg_rating=round(float(avg_rating), 1),
         total_ratings=total_ratings,
         star_counts=star_counts)
+
+
+# ── Admin Decorator ──────────────────────────────────────────────────────────────
+
+from functools import wraps
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('Admin access required.', 'error')
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+    return decorated
+
+
+# ── Admin Routes ─────────────────────────────────────────────────────────────────
+
+@app.route('/admin')
+@login_required
+@admin_required
+def admin_dashboard():
+    total_users = User.query.count()
+    total_invoices = Invoice.query.count()
+    total_revenue = db.session.query(db.func.sum(Invoice.total)).filter_by(status='Paid').scalar() or 0
+    total_feedback = Feedback.query.count()
+    avg_rating = db.session.query(db.func.avg(Feedback.rating)).scalar() or 0
+    recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
+    recent_feedback = Feedback.query.order_by(Feedback.created_at.desc()).limit(5).all()
+    # Monthly signups for chart
+    from collections import defaultdict
+    all_users = User.query.all()
+    monthly_signups = defaultdict(int)
+    for u in all_users:
+        key = u.created_at.strftime('%b %Y')
+        monthly_signups[key] += 1
+    sorted_signups = sorted(monthly_signups.items(), key=lambda x: datetime.strptime(x[0], '%b %Y'))
+    return render_template('admin/dashboard.html',
+        total_users=total_users,
+        total_invoices=total_invoices,
+        total_revenue=round(float(total_revenue), 2),
+        total_feedback=total_feedback,
+        avg_rating=round(float(avg_rating), 1),
+        recent_users=recent_users,
+        recent_feedback=recent_feedback,
+        signup_labels=json.dumps([s[0] for s in sorted_signups]),
+        signup_data=json.dumps([s[1] for s in sorted_signups])
+    )
+
+
+@app.route('/admin/users')
+@login_required
+@admin_required
+def admin_users():
+    search = request.args.get('search', '').strip()
+    query = User.query
+    if search:
+        query = query.filter(db.or_(
+            User.name.ilike(f'%{search}%'),
+            User.email.ilike(f'%{search}%'),
+            User.company.ilike(f'%{search}%')
+        ))
+    users = query.order_by(User.created_at.desc()).all()
+    return render_template('admin/users.html', users=users, search=search)
+
+
+@app.route('/admin/users/<int:id>/toggle-admin', methods=['POST'])
+@login_required
+@admin_required
+def admin_toggle_admin(id):
+    user = User.query.get_or_404(id)
+    if user.id == current_user.id:
+        flash('You cannot change your own admin status.', 'error')
+        return redirect(url_for('admin_users'))
+    user.is_admin = not user.is_admin
+    db.session.commit()
+    flash(f'{"Admin granted to" if user.is_admin else "Admin removed from"} {user.name}.', 'success')
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/users/<int:id>/toggle-active', methods=['POST'])
+@login_required
+@admin_required
+def admin_toggle_active(id):
+    user = User.query.get_or_404(id)
+    if user.id == current_user.id:
+        flash('You cannot deactivate your own account.', 'error')
+        return redirect(url_for('admin_users'))
+    user.is_active_account = not user.is_active_account
+    db.session.commit()
+    flash(f'{"Activated" if user.is_active_account else "Deactivated"} {user.name}.', 'success')
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/users/<int:id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_user(id):
+    user = User.query.get_or_404(id)
+    if user.id == current_user.id:
+        flash('You cannot delete your own account.', 'error')
+        return redirect(url_for('admin_users'))
+    db.session.delete(user)
+    db.session.commit()
+    flash(f'User {user.name} deleted.', 'success')
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/users/<int:id>/reset-password', methods=['POST'])
+@login_required
+@admin_required
+def admin_reset_password(id):
+    user = User.query.get_or_404(id)
+    new_password = request.form.get('new_password', '').strip()
+    if len(new_password) < 8:
+        flash('Password must be at least 8 characters.', 'error')
+        return redirect(url_for('admin_users'))
+    user.password = generate_password_hash(new_password)
+    db.session.commit()
+    flash(f'Password reset for {user.name}.', 'success')
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/invoices')
+@login_required
+@admin_required
+def admin_invoices():
+    search = request.args.get('search', '').strip()
+    status_filter = request.args.get('status', '')
+    query = Invoice.query
+    if search:
+        query = query.filter(db.or_(
+            Invoice.client_name.ilike(f'%{search}%'),
+            Invoice.invoice_number.ilike(f'%{search}%')
+        ))
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    invoices = query.order_by(Invoice.created_at.desc()).all()
+    return render_template('admin/invoices.html', invoices=invoices, search=search, status_filter=status_filter)
+
+
+@app.route('/admin/feedback')
+@login_required
+@admin_required
+def admin_feedback():
+    feedbacks = Feedback.query.order_by(Feedback.created_at.desc()).all()
+    avg_rating = db.session.query(db.func.avg(Feedback.rating)).scalar() or 0
+    total = Feedback.query.count()
+    star_counts = {i: Feedback.query.filter_by(rating=i).count() for i in range(1, 6)}
+    return render_template('admin/feedback.html',
+        feedbacks=feedbacks,
+        avg_rating=round(float(avg_rating), 1),
+        total=total,
+        star_counts=star_counts)
+
+
+@app.route('/admin/feedback/<int:id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_feedback(id):
+    fb = Feedback.query.get_or_404(id)
+    db.session.delete(fb)
+    db.session.commit()
+    flash('Feedback deleted.', 'success')
+    return redirect(url_for('admin_feedback'))
 
 
 # ── Run ─────────────────────────────────────────────────────────────────────────

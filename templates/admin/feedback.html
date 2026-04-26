@@ -1,0 +1,88 @@
+{% extends 'admin/base.html' %}
+{% block title %}Feedback — Admin Billify{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <h2 class="font-display font-700" style="font-size:24px;letter-spacing:-0.5px;color:white;">Feedback</h2>
+  <p style="color:#72727a;font-size:14px;margin-top:4px;">All user ratings and feedback.</p>
+</div>
+
+<!-- Summary -->
+<div class="grid grid-cols-3 gap-4 mb-6">
+  <div style="background:#1a1030;border:1px solid #2a1a50;border-radius:16px;padding:20px;text-align:center;">
+    <div style="font-size:42px;font-weight:800;color:#6c47ff;font-family:'Syne',sans-serif;line-height:1;">{{ avg_rating }}</div>
+    <div style="display:flex;justify-content:center;gap:3px;margin:8px 0;">
+      {% for i in range(1,6) %}
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="{% if i <= avg_rating|round %}#6c47ff{% else %}#2a2a30{% endif %}" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      {% endfor %}
+    </div>
+    <div style="font-size:12px;color:#72727a;">Average Rating</div>
+  </div>
+  <div style="background:#16161a;border:1px solid #2a2a30;border-radius:16px;padding:20px;">
+    <div style="font-size:11px;color:#72727a;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">Star Breakdown</div>
+    {% for i in range(5,0,-1) %}
+    {% set count = star_counts.get(i, 0) %}
+    {% set pct = ((count / total * 100)|round|int) if total > 0 else 0 %}
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <span style="font-size:11px;color:#72727a;min-width:10px;">{{ i }}</span>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="#6c47ff" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <div style="flex:1;height:5px;background:#2a2a30;border-radius:3px;">
+        <div style="width:{{ pct }}%;height:100%;background:#6c47ff;border-radius:3px;"></div>
+      </div>
+      <span style="font-size:11px;color:#72727a;min-width:20px;">{{ count }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <div style="background:#16161a;border:1px solid #2a2a30;border-radius:16px;padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+    <div style="font-size:42px;font-weight:800;color:white;font-family:'Syne',sans-serif;">{{ total }}</div>
+    <div style="font-size:12px;color:#72727a;margin-top:4px;">Total Reviews</div>
+  </div>
+</div>
+
+<!-- Feedback Table -->
+<div style="background:#16161a;border:1px solid #2a2a30;border-radius:16px;overflow:hidden;">
+  {% if feedbacks %}
+  <table style="width:100%;font-size:13px;border-collapse:collapse;">
+    <thead>
+      <tr style="border-bottom:1px solid #2a2a30;">
+        {% for col in ['User', 'Rating', 'Category', 'Message', 'Date', ''] %}
+        <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;color:#72727a;text-transform:uppercase;letter-spacing:0.05em;">{{ col }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for fb in feedbacks %}
+      <tr style="border-bottom:1px solid #1e1e24;" onmouseover="this.style.background='#1e1e24'" onmouseout="this.style.background='transparent'">
+        <td style="padding:12px 16px;">
+          <div style="color:white;font-weight:500;">{{ fb.user.name }}</div>
+          <div style="font-size:11px;color:#72727a;">{{ fb.user.email }}</div>
+        </td>
+        <td style="padding:12px 16px;">
+          <div style="display:flex;gap:2px;">
+            {% for i in range(1,6) %}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="{% if i <= fb.rating %}#6c47ff{% else %}#2a2a30{% endif %}" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            {% endfor %}
+          </div>
+        </td>
+        <td style="padding:12px 16px;">
+          {% if fb.category %}
+          <span style="background:#1a1030;color:#6c47ff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">{{ fb.category }}</span>
+          {% else %}—{% endif %}
+        </td>
+        <td style="padding:12px 16px;color:#a0a0a8;max-width:250px;">{{ fb.message or '—' }}</td>
+        <td style="padding:12px 16px;color:#72727a;">{{ fb.created_at.strftime('%d %b %Y') }}</td>
+        <td style="padding:12px 16px;">
+          <form method="POST" action="{{ url_for('admin_delete_feedback', id=fb.id) }}"
+            onsubmit="return confirm('Delete this feedback?')">
+            <button type="submit" class="btn-danger" style="font-size:11px;padding:4px 10px;">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="padding:60px;text-align:center;color:#72727a;font-size:14px;">No feedback yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

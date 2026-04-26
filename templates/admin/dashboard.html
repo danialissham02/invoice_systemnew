@@ -1,0 +1,119 @@
+{% extends 'admin/base.html' %}
+{% block title %}Admin Overview — Billify{% endblock %}
+{% block head %}<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <h2 class="font-display font-700" style="font-size:24px;letter-spacing:-0.5px;color:white;">Admin Overview</h2>
+  <p style="color:#72727a;font-size:14px;margin-top:4px;">Full system statistics and activity.</p>
+</div>
+
+<!-- KPI Cards -->
+<div class="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
+  {% set cards = [
+    ('Total Users', total_users, '#6c47ff', '#1a1030'),
+    ('Total Invoices', total_invoices, '#34d399', '#0d2d1a'),
+    ('Total Revenue', 'RM ' ~ "%.2f"|format(total_revenue), '#fbbf24', '#2d2010'),
+    ('Feedback', total_feedback, '#60a5fa', '#0d1a2d'),
+    ('Avg Rating', avg_rating ~ ' ★', '#f87171', '#2d1010'),
+  ] %}
+  {% for label, value, color, bg in cards %}
+  <div style="background:{{ bg }};border:1px solid {{ color }}22;border-radius:16px;padding:20px;">
+    <div style="font-size:11px;color:#72727a;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">{{ label }}</div>
+    <div class="font-display font-700" style="font-size:24px;color:{{ color }};letter-spacing:-0.5px;">{{ value }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Charts Row -->
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
+  <div style="background:#16161a;border:1px solid #2a2a30;border-radius:16px;padding:24px;">
+    <div class="font-display font-600" style="font-size:14px;color:white;margin-bottom:4px;">User Signups Over Time</div>
+    <div style="font-size:12px;color:#72727a;margin-bottom:20px;">Monthly new registrations</div>
+    <canvas id="signupChart" height="130"></canvas>
+  </div>
+
+  <div style="background:#16161a;border:1px solid #2a2a30;border-radius:16px;padding:24px;">
+    <div class="font-display font-600" style="font-size:14px;color:white;margin-bottom:16px;">Recent Feedback</div>
+    <div class="space-y-3">
+      {% for fb in recent_feedback %}
+      <div style="padding:10px 12px;background:#1e1e24;border-radius:10px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <div style="display:flex;gap:2px;">
+            {% for i in range(1,6) %}
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="{% if i <= fb.rating %}#6c47ff{% else %}#2a2a30{% endif %}" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            {% endfor %}
+          </div>
+          <span style="font-size:11px;color:#72727a;">{{ fb.user.name }}</span>
+          {% if fb.category %}<span style="font-size:10px;background:#1a1030;color:#6c47ff;padding:2px 7px;border-radius:8px;">{{ fb.category }}</span>{% endif %}
+        </div>
+        {% if fb.message %}<div style="font-size:12px;color:#a0a0a8;">{{ fb.message[:80] }}{% if fb.message|length > 80 %}...{% endif %}</div>{% endif %}
+      </div>
+      {% else %}
+      <div style="color:#72727a;font-size:13px;">No feedback yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Recent Users -->
+<div style="background:#16161a;border:1px solid #2a2a30;border-radius:16px;overflow:hidden;">
+  <div style="padding:16px 24px;border-bottom:1px solid #2a2a30;display:flex;align-items:center;justify-content:between;">
+    <div class="font-display font-600" style="font-size:14px;color:white;">Recent Users</div>
+    <a href="{{ url_for('admin_users') }}" style="font-size:12px;color:#6c47ff;text-decoration:none;margin-left:auto;">View all →</a>
+  </div>
+  <table style="width:100%;font-size:13px;border-collapse:collapse;">
+    <thead>
+      <tr style="border-bottom:1px solid #2a2a30;">
+        {% for col in ['Name', 'Email', 'Company', 'Invoices', 'Joined', 'Role'] %}
+        <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:#72727a;text-transform:uppercase;letter-spacing:0.05em;">{{ col }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in recent_users %}
+      <tr style="border-bottom:1px solid #1e1e24;">
+        <td style="padding:12px 20px;color:white;font-weight:500;">{{ u.name }}</td>
+        <td style="padding:12px 20px;color:#72727a;">{{ u.email }}</td>
+        <td style="padding:12px 20px;color:#72727a;">{{ u.company or '—' }}</td>
+        <td style="padding:12px 20px;color:white;">{{ u.invoices|length }}</td>
+        <td style="padding:12px 20px;color:#72727a;">{{ u.created_at.strftime('%d %b %Y') }}</td>
+        <td style="padding:12px 20px;">
+          {% if u.is_admin %}
+          <span style="background:#1a1030;color:#6c47ff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Admin</span>
+          {% else %}
+          <span style="background:#1e1e24;color:#72727a;padding:3px 10px;border-radius:20px;font-size:11px;">User</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const labels = {{ signup_labels|safe }};
+const data = {{ signup_data|safe }};
+new Chart(document.getElementById('signupChart'), {
+  type: 'bar',
+  data: {
+    labels: labels.length ? labels : ['No Data'],
+    datasets: [{
+      data: data.length ? data : [0],
+      backgroundColor: 'rgba(108,71,255,0.7)',
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#2a2a30' }, ticks: { color: '#72727a', font: { size: 11 } } },
+      x: { grid: { display: false }, ticks: { color: '#72727a', font: { size: 11 } } }
+    }
+  }
+});
+</script>
+{% endblock %}
