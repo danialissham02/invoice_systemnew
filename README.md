@@ -1,4 +1,4 @@
-# ⚡ InvoiceFlow — Invoice Management System
+#  Billify — Invoice Management System
 
 A beginner-friendly invoice management web app built with **Flask + SQLite + Tailwind CSS**.
 
