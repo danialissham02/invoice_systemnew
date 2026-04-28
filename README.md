@@ -1,21 +1,21 @@
 #  Billify — Invoice Management System
 
-A beginner-friendly invoice management web app built with **Flask + SQLite + Tailwind CSS**.
+An invoice management web app built with **Flask + SQLite + Tailwind CSS**.
 
 ---
 
 ## 🚀 Quick Start (Windows + VSCode)
 
-### Step 1 — Prerequisites
+### Prerequisites
 Make sure you have **Python 3.9+** installed.  
 Download from https://www.python.org/downloads/  
 ✅ During install, tick **"Add Python to PATH"**
 
-### Step 2 — Open in VSCode
+### Open in VSCode
 1. Extract the ZIP into a folder, e.g. `C:\Projects\invoice_system`
 2. Open **VSCode** → File → Open Folder → select `invoice_system`
 
-### Step 3 — Set up the project
+### Set up the project
 Open the terminal in VSCode (`` Ctrl + ` ``) and run these commands one by one:
 
 ```bash
@@ -32,7 +32,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-### Step 4 — Open in browser
+### Open in browser
 Go to: **http://127.0.0.1:5000**
 
 Register a new account and start creating invoices! 🎉
@@ -88,7 +88,7 @@ invoice_system/
 
 ---
 
-## 🌍 Deployment (Free Options)
+## 🌍 Deployment
 
 ### Option A — Render.com (Recommended for beginners)
 1. Push your code to GitHub (free account)
@@ -100,12 +100,7 @@ invoice_system/
 5. Add to `requirements.txt`: `gunicorn`
 6. Click Deploy ✅
 
-### Option B — Railway.app
-1. Go to https://railway.app
-2. New Project → Deploy from GitHub
-3. Railway auto-detects Flask
-4. Add environment variable: `SECRET_KEY=your-secret-key-here`
-5. Deploy ✅
+
 
 ---
 
