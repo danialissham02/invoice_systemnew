@@ -616,7 +616,7 @@ def send_invoice(id):
                 'Content-Type': 'application/json'
             },
             json={
-                'from': 'InvoiceFlow <onboarding@resend.dev>',
+                'from': 'Billify <onboarding@resend.dev>',
                 'to': [inv.client_email],
                 'subject': f'Invoice {inv.invoice_number} from {current_user.company or current_user.name}',
                 'text': f'Dear {inv.client_name},\n\nPlease find attached invoice {inv.invoice_number}.\n\nAmount Due: RM {inv.total:.2f}\nDue Date: {inv.due_date.strftime("%d %b %Y")}\n\nThank you for your business.\n\n{current_user.company or current_user.name}',
