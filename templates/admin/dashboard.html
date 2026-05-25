@@ -9,11 +9,10 @@
 </div>
 
 <!-- KPI Cards -->
-<div class="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
+<div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
   {% set cards = [
     ('Total Users', total_users, '#6c47ff', '#1a1030'),
     ('Total Invoices', total_invoices, '#34d399', '#0d2d1a'),
-    ('Total Revenue', 'RM ' ~ "%.2f"|format(total_revenue), '#fbbf24', '#2d2010'),
     ('Feedback', total_feedback, '#60a5fa', '#0d1a2d'),
     ('Avg Rating', avg_rating ~ ' ★', '#f87171', '#2d1010'),
   ] %}
@@ -65,7 +64,7 @@
   <table style="width:100%;font-size:13px;border-collapse:collapse;">
     <thead>
       <tr style="border-bottom:1px solid #2a2a30;">
-        {% for col in ['Name', 'Email', 'Company', 'Invoices', 'Joined', 'Role'] %}
+        {% for col in ['Name', 'Email', 'Company', 'Joined', 'Role'] %}
         <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:#72727a;text-transform:uppercase;letter-spacing:0.05em;">{{ col }}</th>
         {% endfor %}
       </tr>
@@ -76,7 +75,6 @@
         <td style="padding:12px 20px;color:white;font-weight:500;">{{ u.name }}</td>
         <td style="padding:12px 20px;color:#72727a;">{{ u.email }}</td>
         <td style="padding:12px 20px;color:#72727a;">{{ u.company or '—' }}</td>
-        <td style="padding:12px 20px;color:white;">{{ u.invoices|length }}</td>
         <td style="padding:12px 20px;color:#72727a;">{{ u.created_at.strftime('%d %b %Y') }}</td>
         <td style="padding:12px 20px;">
           {% if u.is_admin %}
