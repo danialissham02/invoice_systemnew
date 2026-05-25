@@ -1111,6 +1111,134 @@ def admin_delete_feedback(id):
     return redirect(url_for('admin_feedback'))
 
 
+
+# ── Smart Business Insights ─────────────────────────────────────────────────────
+
+from collections import defaultdict, Counter
+
+class InsightEngine:
+    """Rule-based business intelligence - no AI API calls"""
+
+    def __init__(self, user_id):
+        self.invoices = Invoice.query.filter_by(user_id=user_id).all()
+        self.now = datetime.now()
+        self.this_month = self.now.month
+        self.this_year = self.now.year
+        self.last_month = (self.this_month - 1) or 12
+        self.last_year = self.this_year if self.this_month > 1 else self.this_year - 1
+
+    def get_all_insights(self):
+        if not self.invoices:
+            return []
+        return [
+            self._revenue_insight(),
+            self._payment_insight(),
+            self._client_insight(),
+            self._overdue_insight(),
+            self._service_insight(),
+        ]
+
+    def _revenue_insight(self):
+        this_m = [i for i in self.invoices if i.issue_date.month == self.this_month and i.issue_date.year == self.this_year and i.status == 'Paid']
+        last_m = [i for i in self.invoices if i.issue_date.month == self.last_month and i.issue_date.year == self.last_year and i.status == 'Paid']
+        this_rev = sum(i.total for i in this_m)
+        last_rev = sum(i.total for i in last_m)
+        if last_rev == 0:
+            pct = 100.0 if this_rev > 0 else 0.0
+            trend = 'up' if this_rev > 0 else 'flat'
+        else:
+            pct = ((this_rev - last_rev) / last_rev) * 100
+            trend = 'up' if pct > 0 else 'down' if pct < 0 else 'flat'
+        return {
+            'type': 'revenue',
+            'trend': trend,
+            'title': f"Revenue {'up' if trend == 'up' else 'down' if trend == 'down' else 'flat'} {abs(pct):.1f}% vs last month",
+            'description': f"This month: RM {this_rev:,.2f}   Last month: RM {last_rev:,.2f}",
+            'action': 'Strong growth — keep it up' if trend == 'up' else 'Review pricing or pipeline' if trend == 'down' else 'Steady — maintain momentum',
+            'metric': f"{pct:+.1f}%",
+            'color': 'green' if trend == 'up' else 'red' if trend == 'down' else 'gray',
+        }
+
+    def _payment_insight(self):
+        paid = len([i for i in self.invoices if i.status == 'Paid'])
+        total = len(self.invoices)
+        pct = (paid / total * 100) if total > 0 else 0
+        if pct >= 80: label, color, action = 'Excellent', 'green', 'Collection rate is outstanding'
+        elif pct >= 60: label, color, action = 'Good', 'blue', 'Follow up on remaining invoices'
+        elif pct >= 40: label, color, action = 'Fair', 'yellow', 'Prioritise payment collection'
+        else: label, color, action = 'Needs Attention', 'red', 'Urgent — chase overdue payments'
+        return {
+            'type': 'payment',
+            'trend': 'neutral',
+            'title': f"Payment health: {label}",
+            'description': f"{paid} of {total} invoices paid ({pct:.0f}%)",
+            'action': action,
+            'metric': f"{pct:.0f}%",
+            'color': color,
+        }
+
+    def _client_insight(self):
+        revenue_map = defaultdict(float)
+        for inv in self.invoices:
+            if inv.status == 'Paid':
+                revenue_map[inv.client_name] += inv.total
+        if not revenue_map:
+            return {'type': 'client', 'trend': 'neutral', 'title': 'No paid invoices yet', 'description': 'Complete your first paid invoice to see client insights', 'action': '', 'metric': '—', 'color': 'gray'}
+        top_name, top_val = max(revenue_map.items(), key=lambda x: x[1])
+        total = sum(revenue_map.values())
+        pct = (top_val / total * 100)
+        return {
+            'type': 'client',
+            'trend': 'up',
+            'title': f"{top_name} is your top client",
+            'description': f"Generated RM {top_val:,.2f} — {pct:.0f}% of total revenue",
+            'action': 'Prioritise this relationship',
+            'metric': f"RM {top_val:,.0f}",
+            'color': 'purple',
+        }
+
+    def _overdue_insight(self):
+        overdue = [i for i in self.invoices if i.status == 'Overdue']
+        count = len(overdue)
+        total_amt = sum(i.total for i in overdue)
+        if count == 0:
+            return {'type': 'overdue', 'trend': 'up', 'title': 'No overdue invoices', 'description': 'All invoices are current — great cash flow management', 'action': '', 'metric': '0', 'color': 'green'}
+        return {
+            'type': 'overdue',
+            'trend': 'down',
+            'title': f"{count} overdue invoice{'s' if count > 1 else ''}",
+            'description': f"Total outstanding: RM {total_amt:,.2f}",
+            'action': 'Send reminders immediately',
+            'metric': f"RM {total_amt:,.0f}",
+            'color': 'red',
+        }
+
+    def _service_insight(self):
+        this_month_invs = [i for i in self.invoices if i.issue_date.month == self.this_month and i.issue_date.year == self.this_year]
+        services = []
+        for inv in this_month_invs:
+            for item in inv.items:
+                services.append(item.description)
+        if not services:
+            return {'type': 'service', 'trend': 'neutral', 'title': 'No services billed this month', 'description': 'Create invoices this month to see service insights', 'action': '', 'metric': '—', 'color': 'gray'}
+        top_service, top_count = Counter(services).most_common(1)[0]
+        return {
+            'type': 'service',
+            'trend': 'neutral',
+            'title': f"{top_service} is your top service",
+            'description': f"Billed {top_count} time{'s' if top_count > 1 else ''} this month",
+            'action': 'Your core offering — focus on quality',
+            'metric': f"x{top_count}",
+            'color': 'blue',
+        }
+
+
+@app.route('/api/smart-insights')
+@login_required
+def get_smart_insights():
+    engine = InsightEngine(current_user.id)
+    return jsonify({'insights': engine.get_all_insights()})
+
 # ── Run ─────────────────────────────────────────────────────────────────────────
 
 with app.app_context():
