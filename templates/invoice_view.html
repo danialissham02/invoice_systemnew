@@ -1,164 +1,152 @@
 {% extends 'base.html' %}
 {% block title %}{{ invoice.invoice_number }} — Billify{% endblock %}
+{% block page_title %}{{ invoice.invoice_number }}{% endblock %}
+{% block page_subtitle %}Created {{ invoice.created_at.strftime('%d %b %Y') }}{% endblock %}
+
+{% block header_actions %}
+<form method="POST" action="{{ url_for('send_invoice', id=invoice.id) }}" style="display:inline;">
+  <button type="submit" onclick="return confirm('Send invoice to {{ invoice.client_email or 'client' }}?')" class="btn-secondary">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+    Send Invoice
+  </button>
+</form>
+<a href="{{ url_for('download_pdf', id=invoice.id) }}" class="btn-secondary">
+  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+  Download PDF
+</a>
+<a href="{{ url_for('edit_invoice', id=invoice.id) }}" class="btn-secondary">Edit</a>
+<form method="POST" action="{{ url_for('delete_invoice', id=invoice.id) }}" style="display:inline;" onsubmit="return confirm('Delete this invoice? This cannot be undone.')">
+  <button type="submit" class="btn-danger" style="padding:9px 16px;font-size:13px;">Delete</button>
+</form>
+{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-8">
-  <div class="flex items-center gap-3">
-    <a href="{{ url_for('invoices') }}" class="text-gray-400 hover:text-gray-600 transition">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-    </a>
-    <div>
-      <h2 class="text-2xl font-bold text-gray-900">{{ invoice.invoice_number }}</h2>
-      <p class="text-sm text-gray-500 mt-0.5">Created {{ invoice.created_at.strftime('%d %b %Y') }}</p>
-    </div>
-  </div>
-  <div class="flex items-center gap-3">
-    <!-- Send Invoice -->
-    <form method="POST" action="{{ url_for('send_invoice', id=invoice.id) }}" style="display:inline;">
-      <button type="submit"
-        onclick="return confirm('Send invoice to {{ invoice.client_email or 'client' }}?')"
-        class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition font-medium flex items-center gap-2">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-        Send Invoice
-      </button>
-    </form>
-    <!-- Download PDF -->
-    <a href="{{ url_for('download_pdf', id=invoice.id) }}"
-      class="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition font-medium flex items-center gap-2">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-      Download PDF
-    </a>
-    <!-- Edit -->
-    <a href="{{ url_for('edit_invoice', id=invoice.id) }}"
-      class="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition font-medium">
-      Edit
-    </a>
-    <!-- Delete -->
-    <form method="POST" action="{{ url_for('delete_invoice', id=invoice.id) }}"
-          onsubmit="return confirm('Delete this invoice? This cannot be undone.')">
-      <button type="submit" class="px-4 py-2 border border-red-200 text-red-600 text-sm rounded-lg hover:bg-red-50 transition font-medium">Delete</button>
-    </form>
-  </div>
-</div>
+<div style="display:grid;grid-template-columns:1fr 280px;gap:20px;" class="fade-up fade-up-1">
 
-<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
   <!-- Invoice Preview -->
-  <div class="xl:col-span-2">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-      <div class="flex justify-between items-start mb-8">
-        <div>
-          <div class="flex items-center gap-2">
-            <div style="width:32px;height:32px;background:linear-gradient(135deg,#6c47ff,#9b6dff);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:white;">BL</span>
-            </div>
-            <h1 class="text-2xl font-bold" style="color:#6c47ff;font-family:'Syne',sans-serif;">Billify</h1>
-          </div>
-          <p class="text-gray-500 text-sm mt-1">{{ current_user.company or current_user.name }}</p>
-          <p class="text-gray-400 text-xs">{{ current_user.email }}</p>
-        </div>
-        <div class="text-right">
-          <div class="text-3xl font-bold text-gray-200">INVOICE</div>
-          <div class="text-lg font-semibold text-gray-800 mt-1">{{ invoice.invoice_number }}</div>
-          <span class="inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold
-            {% if invoice.status == 'Paid' %}bg-green-100 text-green-700
-            {% elif invoice.status == 'Overdue' %}bg-red-100 text-red-700
-            {% elif invoice.status == 'Unpaid' %}bg-yellow-100 text-yellow-700
-            {% else %}bg-gray-100 text-gray-600{% endif %}">
-            {{ invoice.status }}
-          </span>
+  <div class="card" style="padding:36px;">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:32px;">
+      <div>
+        <span style="font-size:24px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,#fff 40%,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Billify</span>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px;">{{ current_user.company or current_user.name }}</div>
+        <div style="font-size:12px;color:var(--muted);">{{ current_user.email }}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:28px;font-weight:800;color:rgba(0,0,0,0.03);letter-spacing:2px;">INVOICE</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);margin-top:2px;">{{ invoice.invoice_number }}</div>
+        <div style="margin-top:8px;">
+          {% if invoice.status == 'Paid' %}<span class="badge-paid">Paid</span>
+          {% elif invoice.status == 'Overdue' %}<span class="badge-overdue">Overdue</span>
+          {% elif invoice.status == 'Unpaid' %}<span class="badge-unpaid">Unpaid</span>
+          {% else %}<span class="badge-draft">Draft</span>{% endif %}
         </div>
       </div>
-
-      <div class="grid grid-cols-2 gap-6 mb-8 p-4 bg-gray-50 rounded-xl">
-        <div>
-          <p class="text-xs font-semibold text-gray-400 uppercase mb-2">Bill To</p>
-          <p class="font-semibold text-gray-900">{{ invoice.client_name }}</p>
-          {% if invoice.client_email %}<p class="text-sm text-gray-500">{{ invoice.client_email }}</p>{% endif %}
-          {% if invoice.client_address %}<p class="text-sm text-gray-500 mt-1 whitespace-pre-line">{{ invoice.client_address }}</p>{% endif %}
-        </div>
-        <div class="text-right">
-          <p class="text-xs font-semibold text-gray-400 uppercase mb-2">Dates</p>
-          <div class="text-sm space-y-1">
-            <div><span class="text-gray-500">Issued:</span> <span class="font-medium">{{ invoice.issue_date.strftime('%d %b %Y') }}</span></div>
-            <div><span class="text-gray-500">Due:</span> <span class="font-medium {% if invoice.status == 'Overdue' %}text-red-600{% endif %}">{{ invoice.due_date.strftime('%d %b %Y') }}</span></div>
-          </div>
-        </div>
-      </div>
-
-      <table class="w-full text-sm mb-6">
-        <thead>
-          <tr class="border-b-2 border-gray-200">
-            <th class="text-left pb-2 font-semibold text-gray-600">Description</th>
-            <th class="text-center pb-2 font-semibold text-gray-600">Qty</th>
-            <th class="text-right pb-2 font-semibold text-gray-600">Unit Price</th>
-            <th class="text-right pb-2 font-semibold text-gray-600">Amount</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          {% for item in invoice.items %}
-          <tr>
-            <td class="py-3 text-gray-800">{{ item.description }}</td>
-            <td class="py-3 text-center text-gray-600">{{ item.quantity|int if item.quantity == item.quantity|int else item.quantity }}</td>
-            <td class="py-3 text-right text-gray-600">RM {{ "%.2f"|format(item.unit_price) }}</td>
-            <td class="py-3 text-right font-medium">RM {{ "%.2f"|format(item.amount) }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-
-      <div class="flex justify-end">
-        <div class="w-64 space-y-2">
-          <div class="flex justify-between text-sm">
-            <span class="text-gray-500">Subtotal</span>
-            <span>RM {{ "%.2f"|format(invoice.subtotal) }}</span>
-          </div>
-          {% if invoice.tax_percent > 0 %}
-          <div class="flex justify-between text-sm">
-            <span class="text-gray-500">Tax ({{ invoice.tax_percent }}%)</span>
-            <span>RM {{ "%.2f"|format(invoice.tax_amount) }}</span>
-          </div>
-          {% endif %}
-          <div class="flex justify-between border-t-2 border-gray-900 pt-2 mt-2">
-            <span class="font-bold text-gray-900">Total</span>
-            <span class="font-bold text-xl text-blue-600">RM {{ "%.2f"|format(invoice.total) }}</span>
-          </div>
-        </div>
-      </div>
-
-      {% if invoice.notes %}
-      <div class="mt-8 pt-6 border-t border-gray-100">
-        <p class="text-xs font-semibold text-gray-400 uppercase mb-2">Notes</p>
-        <p class="text-sm text-gray-600 whitespace-pre-line">{{ invoice.notes }}</p>
-      </div>
-      {% endif %}
     </div>
+
+    <!-- Bill To + Dates -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:20px;background:#faf8ff;border:1px solid var(--border);border-radius:12px;margin-bottom:28px;">
+      <div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Bill To</div>
+        <div style="font-weight:600;color:var(--text);font-size:14px;">{{ invoice.client_name }}</div>
+        {% if invoice.client_email %}<div style="font-size:12px;color:var(--muted);margin-top:3px;">{{ invoice.client_email }}</div>{% endif %}
+        {% if invoice.client_address %}<div style="font-size:12px;color:var(--muted);margin-top:3px;white-space:pre-line;">{{ invoice.client_address }}</div>{% endif %}
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Dates</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:4px;">Issued: <span style="color:var(--text);font-weight:500;">{{ invoice.issue_date.strftime('%d %b %Y') }}</span></div>
+        <div style="font-size:13px;color:var(--muted);">Due: <span style="font-weight:500;{% if invoice.status == 'Overdue' %}color:#f87171;{% else %}color:var(--text);{% endif %}">{{ invoice.due_date.strftime('%d %b %Y') }}</span></div>
+      </div>
+    </div>
+
+    <!-- Line Items -->
+    <table style="margin-bottom:24px;">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th style="text-align:center;">Qty</th>
+          <th style="text-align:right;">Unit Price</th>
+          <th style="text-align:right;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in invoice.items %}
+        <tr>
+          <td>{{ item.description }}</td>
+          <td style="text-align:center;color:var(--muted);">{{ item.quantity|int if item.quantity == item.quantity|int else item.quantity }}</td>
+          <td style="text-align:right;color:var(--muted);">RM {{ "%.2f"|format(item.unit_price) }}</td>
+          <td style="text-align:right;font-weight:600;color:var(--text);">RM {{ "%.2f"|format(item.amount) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Totals -->
+    <div style="display:flex;justify-content:flex-end;">
+      <div style="width:240px;">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;">
+          <span style="color:var(--muted);">Subtotal</span>
+          <span style="color:var(--text);">RM {{ "%.2f"|format(invoice.subtotal) }}</span>
+        </div>
+        {% if invoice.tax_percent > 0 %}
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;">
+          <span style="color:var(--muted);">Tax ({{ invoice.tax_percent }}%)</span>
+          <span style="color:var(--text);">RM {{ "%.2f"|format(invoice.tax_amount) }}</span>
+        </div>
+        {% endif %}
+        <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+          <span style="font-weight:700;color:var(--text);">Total</span>
+          <span style="font-weight:700;font-size:18px;color:#9b6dff;">RM {{ "%.2f"|format(invoice.total) }}</span>
+        </div>
+      </div>
+    </div>
+
+    {% if invoice.notes %}
+    <div style="margin-top:28px;padding:16px;background:rgba(108,71,255,0.06);border-left:3px solid #6c47ff;border-radius:0 8px 8px 0;">
+      <div style="font-size:10px;color:#9b6dff;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Notes</div>
+      <div style="font-size:13px;color:var(--muted);white-space:pre-line;line-height:1.6;">{{ invoice.notes }}</div>
+    </div>
+    {% endif %}
   </div>
 
   <!-- Right Panel -->
-  <div class="space-y-5">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <h3 class="font-semibold text-gray-800 mb-4">Update Status</h3>
-      <form method="POST" action="{{ url_for('update_status', id=invoice.id) }}" class="space-y-2">
-        {% for s in ['Draft', 'Unpaid', 'Paid', 'Overdue'] %}
-        <label class="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition">
-          <input type="radio" name="status" value="{{ s }}" {% if invoice.status == s %}checked{% endif %} class="accent-blue-600" />
-          <span class="text-sm {% if s == 'Paid' %}text-green-700{% elif s == 'Overdue' %}text-red-700{% elif s == 'Unpaid' %}text-yellow-700{% else %}text-gray-600{% endif %} font-medium">{{ s }}</span>
+  <div style="display:flex;flex-direction:column;gap:16px;">
+
+    <!-- Update Status -->
+    <div class="card" style="padding:20px;">
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px;">Update Status</div>
+      <form method="POST" action="{{ url_for('update_status', id=invoice.id) }}">
+        {% for s in ['Draft','Unpaid','Paid','Overdue'] %}
+        <label style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;cursor:pointer;margin-bottom:4px;transition:background 0.15s;" onmouseover="this.style.background='rgba(0,0,0,0.02)'" onmouseout="this.style.background='transparent'">
+          <input type="radio" name="status" value="{{ s }}" {% if invoice.status == s %}checked{% endif %} style="accent-color:#6c47ff;width:15px;height:15px;"/>
+          <span style="font-size:13px;font-weight:500;
+            {% if s == 'Paid' %}color:#34d399;
+            {% elif s == 'Overdue' %}color:#f87171;
+            {% elif s == 'Unpaid' %}color:#fbbf24;
+            {% else %}color:var(--muted-light);{% endif %}">{{ s }}</span>
         </label>
         {% endfor %}
-        <button type="submit" class="w-full mt-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium py-2.5 rounded-lg transition">
-          Save Status
-        </button>
+        <button type="submit" class="btn-primary" style="width:100%;margin-top:10px;justify-content:center;">Save Status</button>
       </form>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <h3 class="font-semibold text-gray-800 mb-4">Summary</h3>
-      <dl class="space-y-2 text-sm">
-        <div class="flex justify-between"><dt class="text-gray-500">Subtotal</dt><dd class="font-medium">RM {{ "%.2f"|format(invoice.subtotal) }}</dd></div>
-        <div class="flex justify-between"><dt class="text-gray-500">Tax</dt><dd class="font-medium">RM {{ "%.2f"|format(invoice.tax_amount) }}</dd></div>
-        <div class="flex justify-between border-t pt-2 mt-1"><dt class="font-bold">Total</dt><dd class="font-bold text-blue-600">RM {{ "%.2f"|format(invoice.total) }}</dd></div>
-      </dl>
+    <!-- Summary -->
+    <div class="card" style="padding:20px;">
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px;">Summary</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;">
+        <span style="color:var(--muted);">Subtotal</span>
+        <span style="color:var(--text);font-weight:500;">RM {{ "%.2f"|format(invoice.subtotal) }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;">
+        <span style="color:var(--muted);">Tax</span>
+        <span style="color:var(--text);font-weight:500;">RM {{ "%.2f"|format(invoice.tax_amount) }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+        <span style="font-weight:700;color:var(--text);">Total</span>
+        <span style="font-weight:700;font-size:16px;color:#9b6dff;">RM {{ "%.2f"|format(invoice.total) }}</span>
+      </div>
     </div>
+
   </div>
 </div>
 {% endblock %}

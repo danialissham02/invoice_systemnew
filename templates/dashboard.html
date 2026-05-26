@@ -1,250 +1,319 @@
 {% extends 'base.html' %}
 {% block title %}Dashboard — Billify{% endblock %}
-{% block head %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Welcome back, {{ current_user.name }}{% endblock %}
+{% block header_actions %}
+<a href="{{ url_for('new_invoice') }}" class="btn-primary">
+  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+  New Invoice
+</a>
 {% endblock %}
+{% block head %}<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>{% endblock %}
 
 {% block content %}
-<div class="mb-8 fade-up fade-up-1">
-  <h2 class="font-display font-700" style="font-size:26px;letter-spacing:-0.5px;color:var(--text);">Dashboard</h2>
-  <p style="color:var(--muted);font-size:14px;margin-top:4px;">Good to see you, <strong>{{ current_user.name }}</strong>. Here's what's happening.</p>
+
+<!-- KPI Cards — This Month -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;" class="fade-up fade-up-1">
+
+  <!-- Revenue -->
+  <div class="card" style="padding:18px 20px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <div style="width:32px;height:32px;background:var(--accent-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+        <svg width="15" height="15" fill="none" stroke="var(--accent)" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      </div>
+      <span style="font-size:11px;color:var(--muted);font-weight:500;">Revenue</span>
+      <span style="margin-left:auto;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;{% if revenue_pct >= 0 %}background:#f0fdf4;color:#16a34a;{% else %}background:#fef2f2;color:#dc2626;{% endif %}">{{ "%+.1f"|format(revenue_pct) }}%</span>
+    </div>
+    <div style="font-size:24px;font-weight:700;color:var(--text);letter-spacing:-.5px;">RM {{ "%.2f"|format(this_revenue) }}</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;">This month</div>
+  </div>
+
+  <!-- Paid -->
+  <div class="card" style="padding:18px 20px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <div style="width:32px;height:32px;background:#f0fdf4;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+        <svg width="15" height="15" fill="none" stroke="#16a34a" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <span style="font-size:11px;color:var(--muted);font-weight:500;">Paid</span>
+      <span style="margin-left:auto;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;background:#f0fdf4;color:#16a34a;">{{ paid_pct }}%</span>
+    </div>
+    <div style="font-size:24px;font-weight:700;color:var(--text);letter-spacing:-.5px;">{{ this_paid }}</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;">This month</div>
+  </div>
+
+  <!-- Outstanding -->
+  <div class="card" style="padding:18px 20px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <div style="width:32px;height:32px;background:#fffbeb;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+        <svg width="15" height="15" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      </div>
+      <span style="font-size:11px;color:var(--muted);font-weight:500;">Outstanding</span>
+      <span style="margin-left:auto;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;background:#fffbeb;color:#d97706;">{{ this_outstanding_count }}</span>
+    </div>
+    <div style="font-size:24px;font-weight:700;color:var(--text);letter-spacing:-.5px;">RM {{ "%.2f"|format(this_outstanding) }}</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;">This month</div>
+  </div>
+
+  <!-- Overdue -->
+  <div class="card" style="padding:18px 20px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <div style="width:32px;height:32px;background:#fef2f2;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+        <svg width="15" height="15" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      </div>
+      <span style="font-size:11px;color:var(--muted);font-weight:500;">Overdue</span>
+      <span style="margin-left:auto;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;{% if this_overdue > 0 %}background:#fef2f2;color:#dc2626;{% else %}background:#f0fdf4;color:#16a34a;{% endif %}">{% if this_overdue > 0 %}RM {{ "%.0f"|format(this_overdue_amount) }}{% else %}Clear{% endif %}</span>
+    </div>
+    <div style="font-size:24px;font-weight:700;color:var(--text);letter-spacing:-.5px;">{{ this_overdue }}</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;">This month</div>
+  </div>
 </div>
 
-<!-- KPI Cards -->
-<div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-  <div class="card p-5 fade-up fade-up-1">
-    <div style="width:38px;height:38px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
-      <svg class="w-5 h-5" style="color:#166534;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>
-    </div>
-    <div class="font-display font-700" style="font-size:22px;letter-spacing:-0.5px;">RM {{ "%.2f"|format(total_revenue) }}</div>
-    <div style="font-size:12px;color:var(--muted);margin-top:2px;">Total Revenue</div>
-    <div style="font-size:11px;color:#166534;margin-top:4px;">From paid invoices</div>
-  </div>
-  <div class="card p-5 fade-up fade-up-2">
-    <div style="width:38px;height:38px;background:#fef9c3;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
-      <svg class="w-5 h-5" style="color:#854d0e;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-    </div>
-    <div class="font-display font-700" style="font-size:22px;letter-spacing:-0.5px;">RM {{ "%.2f"|format(outstanding) }}</div>
-    <div style="font-size:12px;color:var(--muted);margin-top:2px;">Outstanding</div>
-    <div style="font-size:11px;color:#854d0e;margin-top:4px;">Unpaid + Overdue</div>
-  </div>
-  <div class="card p-5 fade-up fade-up-3">
-    <div style="width:38px;height:38px;background:#fee2e2;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
-      <svg class="w-5 h-5" style="color:#991b1b;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-    </div>
-    <div class="font-display font-700" style="font-size:22px;letter-spacing:-0.5px;">{{ overdue_count }}</div>
-    <div style="font-size:12px;color:var(--muted);margin-top:2px;">Overdue</div>
-    <div style="font-size:11px;color:#991b1b;margin-top:4px;">Past due date</div>
-  </div>
-  <div class="card p-5 fade-up fade-up-4">
-    <div style="width:38px;height:38px;background:#ede9ff;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
-      <svg class="w-5 h-5" style="color:#4a2fe0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-    </div>
-    <div class="font-display font-700" style="font-size:22px;letter-spacing:-0.5px;">{{ total_invoices }}</div>
-    <div style="font-size:12px;color:var(--muted);margin-top:2px;">Total Invoices</div>
-    <div style="font-size:11px;color:#4a2fe0;margin-top:4px;">All time</div>
-  </div>
-</div>
+<!-- Middle: Revenue Forecast + AI Insights -->
+<div style="display:grid;grid-template-columns:1fr 300px;gap:16px;margin-bottom:24px;" class="fade-up fade-up-2">
 
-<!-- Row 2: Revenue Forecast + Status Doughnut -->
-<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-4">
-  <div class="card p-6 xl:col-span-2 fade-up fade-up-2">
-    <div class="flex items-start justify-between mb-5">
+  <!-- Revenue Forecast Chart -->
+  <div class="card" style="padding:24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
       <div>
-        <div class="font-display font-600" style="font-size:15px;">Revenue Trend & Forecast</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Actual revenue with next month prediction</div>
-      </div>
-      <div id="forecastBadge" style="background:#ede9ff;border-radius:10px;padding:6px 12px;text-align:right;display:none;">
-        <div style="font-size:10px;color:#6c47ff;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Next Month</div>
-        <div id="forecastVal" class="font-display font-700" style="font-size:16px;color:#6c47ff;">—</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text);">Revenue overview</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Monthly trend with forecast</div>
       </div>
     </div>
-    <canvas id="revenueChart" height="120"></canvas>
+    <canvas id="forecastChart" height="85"></canvas>
   </div>
-  <div class="card p-6 fade-up fade-up-3">
-    <div class="mb-5">
-      <div class="font-display font-600" style="font-size:15px;">Invoice Status</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Breakdown by status</div>
+
+  <!-- Business Insights -->
+  <div class="card" style="padding:20px;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:600;color:var(--text);">Business insights</div>
+      <a href="{{ url_for('reports') }}" style="font-size:11px;color:var(--accent);text-decoration:none;font-weight:600;">View all</a>
     </div>
-    <canvas id="statusChart" height="170"></canvas>
+    <div id="insightsList" style="display:flex;flex-direction:column;gap:8px;flex:1;">
+      {% for i in range(3) %}
+      <div style="height:56px;background:#faf8ff;border-radius:8px;border:1px solid var(--border);"></div>
+      {% endfor %}
+    </div>
   </div>
 </div>
 
-<!-- Row 3: Top Clients + Recent Invoices -->
-<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-4">
-  <div class="card p-6 fade-up fade-up-3">
-    <div class="mb-5">
-      <div class="font-display font-600" style="font-size:15px;">Top Clients</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px;">By total revenue paid</div>
-    </div>
-    <canvas id="clientsChart" height="210"></canvas>
-  </div>
+<!-- Bottom: Recent Invoices + Status -->
+<div style="display:grid;grid-template-columns:1fr 240px;gap:16px;" class="fade-up fade-up-3">
 
-  <div class="card xl:col-span-2 fade-up fade-up-4">
-    <div class="flex items-center justify-between px-6 py-4" style="border-bottom:1px solid var(--border);">
-      <div>
-        <div class="font-display font-600" style="font-size:15px;">Recent Invoices</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:1px;">Latest activity</div>
-      </div>
-      <a href="{{ url_for('invoices') }}" style="font-size:13px;color:var(--accent);font-weight:500;text-decoration:none;">View all →</a>
+  <!-- Recent Invoices -->
+  <div class="card">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:15px;font-weight:600;color:var(--text);">Recent invoices</div>
+      <a href="{{ url_for('invoices') }}" class="btn-secondary" style="font-size:12px;padding:6px 12px;">View all</a>
     </div>
     {% if recent_invoices %}
-    <div class="overflow-x-auto">
-      <table style="width:100%;font-size:13px;">
-        <thead>
-          <tr style="border-bottom:1px solid var(--border);">
-            <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">Invoice</th>
-            <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">Client</th>
-            <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">Amount</th>
-            <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for inv in recent_invoices %}
-          <tr style="border-bottom:1px solid var(--border);transition:background 0.1s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
-            <td style="padding:12px 20px;">
-              <a href="{{ url_for('view_invoice', id=inv.id) }}" style="font-weight:600;color:var(--accent);text-decoration:none;">{{ inv.invoice_number }}</a>
-              <div style="font-size:11px;color:var(--muted);">{{ inv.due_date.strftime('%d %b %Y') }}</div>
-            </td>
-            <td style="padding:12px 20px;color:var(--text);">{{ inv.client_name }}</td>
-            <td style="padding:12px 20px;font-weight:600;">RM {{ "%.2f"|format(inv.total) }}</td>
-            <td style="padding:12px 20px;">
-              <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;" class="badge-{{ inv.status.lower() }}">{{ inv.status }}</span>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+    <table>
+      <thead><tr><th>Invoice #</th><th>Client</th><th>Date</th><th style="text-align:right;">Amount</th><th style="text-align:center;">Status</th><th style="text-align:right;">Action</th></tr></thead>
+      <tbody>
+        {% for inv in recent_invoices %}
+        <tr>
+          <td><a href="{{ url_for('view_invoice', id=inv.id) }}" style="color:var(--accent);text-decoration:none;font-weight:600;">{{ inv.invoice_number }}</a></td>
+          <td style="font-weight:500;">{{ inv.client_name }}</td>
+          <td style="color:var(--muted);">{{ inv.issue_date.strftime('%d %b %Y') }}</td>
+          <td style="text-align:right;font-weight:600;">RM {{ "%.2f"|format(inv.total) }}</td>
+          <td style="text-align:center;">
+            {% if inv.status == 'Paid' %}<span class="badge-paid">Paid</span>
+            {% elif inv.status == 'Overdue' %}<span class="badge-overdue">Overdue</span>
+            {% elif inv.status == 'Unpaid' %}<span class="badge-unpaid">Unpaid</span>
+            {% else %}<span class="badge-draft">Draft</span>{% endif %}
+          </td>
+          <td style="text-align:right;"><a href="{{ url_for('view_invoice', id=inv.id) }}" style="color:var(--muted);text-decoration:none;font-size:12px;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
     {% else %}
-    <div style="padding:50px;text-align:center;">
-      <p style="color:var(--muted);font-size:14px;margin-bottom:12px;">No invoices yet</p>
-      <a href="{{ url_for('new_invoice') }}" class="btn-primary" style="display:inline-block;padding:10px 20px;font-size:13px;text-decoration:none;">Create your first invoice</a>
+    <div style="padding:48px;text-align:center;">
+      <p style="color:var(--muted);font-size:13px;margin-bottom:14px;">No invoices yet</p>
+      <a href="{{ url_for('new_invoice') }}" class="btn-primary">Create your first invoice</a>
     </div>
     {% endif %}
+  </div>
+
+  <!-- Invoice Status -->
+  <div class="card" style="padding:20px;">
+    <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:18px;">Invoice status</div>
+    <canvas id="statusChart" height="160" style="margin-bottom:16px;"></canvas>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="background:#f0fdf4;border:1px solid #dcfce7;border-radius:8px;padding:10px;">
+        <div style="font-size:10px;color:#16a34a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Paid</div>
+        <div style="font-size:18px;font-weight:700;color:#16a34a;">{{ status_counts_raw.Paid or 0 }}</div>
+      </div>
+      <div style="background:#fffbeb;border:1px solid #fef3c7;border-radius:8px;padding:10px;">
+        <div style="font-size:10px;color:#d97706;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Unpaid</div>
+        <div style="font-size:18px;font-weight:700;color:#d97706;">{{ status_counts_raw.Unpaid or 0 }}</div>
+      </div>
+      <div style="background:#fef2f2;border:1px solid #fee2e2;border-radius:8px;padding:10px;">
+        <div style="font-size:10px;color:#dc2626;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Overdue</div>
+        <div style="font-size:18px;font-weight:700;color:#dc2626;">{{ status_counts_raw.Overdue or 0 }}</div>
+      </div>
+      <div style="background:#faf8ff;border:1px solid var(--border);border-radius:8px;padding:10px;">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Draft</div>
+        <div style="font-size:18px;font-weight:700;color:var(--muted);">{{ status_counts_raw.Draft or 0 }}</div>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-const statusCounts = {{ status_counts|safe }};
+// Revenue Forecast Chart
+fetch('/api/revenue-forecast')
+  .then(r => r.json())
+  .then(data => {
+    if (!data.labels || !data.labels.length) return;
+    const labels = [...data.labels, data.forecast_label + ' (forecast)'];
+    const actual = [...data.actual, null];
+    const forecastBar = new Array(data.actual.length).fill(null);
+    forecastBar.push(data.forecast_value);
 
-// ── Revenue Forecast Chart ──────────────────────────────────────────────────────
-fetch('/api/revenue-forecast').then(r => r.json()).then(data => {
-  if (!data.labels || data.labels.length === 0) {
-    document.getElementById('revenueChart').parentElement.innerHTML +=
-      '<p style="text-align:center;color:var(--muted);font-size:13px;margin-top:20px;">Not enough data for forecast yet</p>';
-    return;
-  }
-  const allLabels = [...data.labels, data.forecast_label];
-  const actualData = [...data.actual, null];
-  const forecastData = [...Array(data.actual.length - 1).fill(null), data.actual[data.actual.length - 1], data.forecast_value];
-
-  if (data.forecast_value > 0) {
-    document.getElementById('forecastBadge').style.display = 'block';
-    document.getElementById('forecastVal').textContent = 'RM ' + data.forecast_value.toLocaleString('en-MY', {minimumFractionDigits:2, maximumFractionDigits:2});
-  }
-
-  new Chart(document.getElementById('revenueChart'), {
-    type: 'line',
-    data: {
-      labels: allLabels,
-      datasets: [
-        {
-          label: 'Actual Revenue',
-          data: actualData,
-          borderColor: '#6c47ff',
-          backgroundColor: 'rgba(108,71,255,0.08)',
-          borderWidth: 2.5,
-          fill: true,
-          tension: 0.4,
-          pointBackgroundColor: '#6c47ff',
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          spanGaps: false,
-        },
-        {
-          label: 'Forecast',
-          data: forecastData,
-          borderColor: '#9b6dff',
-          backgroundColor: 'transparent',
-          borderWidth: 2,
-          borderDash: [6, 4],
-          fill: false,
-          tension: 0.4,
-          pointBackgroundColor: '#9b6dff',
-          pointRadius: 5,
-          pointStyle: 'rectRot',
-          spanGaps: false,
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'bottom', labels: { font: { size: 11 }, color: '#72727a', padding: 16, usePointStyle: true } }
+    new Chart(document.getElementById('forecastChart'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Revenue',
+            data: actual,
+            backgroundColor: actual.map((_, i) => i === actual.length - 2 ? '#7c3aed' : '#ede9fe'),
+            borderRadius: 6,
+            borderSkipped: false,
+            barPercentage: 0.5,
+            categoryPercentage: 0.7,
+          },
+          {
+            type: 'bar',
+            label: 'Forecast',
+            data: forecastBar,
+            backgroundColor: 'rgba(124,58,237,0.12)',
+            borderColor: '#a78bfa',
+            borderWidth: 1.5,
+            borderRadius: 6,
+            borderSkipped: false,
+            barPercentage: 0.5,
+            categoryPercentage: 0.7,
+          },
+          {
+            type: 'line',
+            label: 'Trend',
+            data: [...data.actual, data.forecast_value],
+            borderColor: '#7c3aed',
+            backgroundColor: 'rgba(124,58,237,0.04)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: [...data.actual.map(() => 3), 5],
+            pointBackgroundColor: [...data.actual.map(() => '#7c3aed'), '#fff'],
+            pointBorderColor: [...data.actual.map(() => '#fff'), '#7c3aed'],
+            pointBorderWidth: 2,
+            pointStyle: [...data.actual.map(() => 'circle'), 'circle'],
+            pointHoverRadius: 6,
+            segment: {
+              borderDash: ctx => ctx.p1DataIndex === labels.length - 1 ? [5, 4] : [],
+            },
+          }
+        ]
       },
-      scales: {
-        y: { beginAtZero: true, grid: { color: '#f0f0f5' }, ticks: { color: '#72727a', font: { size: 11 } } },
-        x: { grid: { display: false }, ticks: { color: '#72727a', font: { size: 11 } } }
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1a1a2e',
+            titleColor: '#fff',
+            bodyColor: '#ccc',
+            padding: 12,
+            cornerRadius: 8,
+            displayColors: false,
+            callbacks: {
+              title: ctx => {
+                const label = ctx[0].label || '';
+                return label.includes('forecast') ? 'Predicted — ' + label.replace(' (forecast)', '') : label;
+              },
+              label: c => {
+                const val = c.parsed.y || 0;
+                return 'RM ' + val.toLocaleString('en-MY', {minimumFractionDigits: 2});
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
+            ticks: {
+              color: '#8b8b9e',
+              font: { size: 11 },
+              maxTicksLimit: 5,
+              callback: v => {
+                if (v >= 1000) return 'RM ' + (v / 1000).toFixed(v % 1000 === 0 ? 0 : 1) + 'k';
+                return 'RM ' + v;
+              }
+            }
+          },
+          x: {
+            grid: { display: false },
+            ticks: {
+              color: ctx => ctx.index === labels.length - 1 ? '#7c3aed' : '#8b8b9e',
+              font: ctx => ({ size: 11, weight: ctx.index === labels.length - 1 ? '600' : '400' })
+            }
+          }
+        }
       }
-    }
+    });
   });
-});
 
-// ── Status Doughnut ─────────────────────────────────────────────────────────────
+// Status Doughnut
+const sc = {{ status_counts|safe }};
+const scp = typeof sc === 'string' ? JSON.parse(sc) : sc;
 new Chart(document.getElementById('statusChart'), {
   type: 'doughnut',
   data: {
-    labels: Object.keys(statusCounts),
-    datasets: [{
-      data: Object.values(statusCounts),
-      backgroundColor: ['#c4b5fd', '#fde68a', '#6c47ff', '#fca5a5'],
-      borderWidth: 0,
-      hoverOffset: 6
-    }]
+    labels: ['Paid','Unpaid','Overdue','Draft'],
+    datasets: [{ data: [scp.Paid||0, scp.Unpaid||0, scp.Overdue||0, scp.Draft||0], backgroundColor: ['#4ade80','#facc15','#f87171','#c4b5fd'], borderWidth: 2, borderColor: '#ffffff', hoverOffset: 4 }]
   },
-  options: {
-    responsive: true,
-    cutout: '72%',
-    plugins: {
-      legend: { position: 'bottom', labels: { font: { size: 11 }, color: '#72727a', padding: 14, usePointStyle: true } }
-    }
-  }
+  options: { responsive: true, cutout: '65%', plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1a2e', titleColor: '#fff', bodyColor: '#ccc', padding: 10, cornerRadius: 8 } } }
 });
 
-// ── Top Clients Bar Chart ───────────────────────────────────────────────────────
-fetch('/api/top-clients').then(r => r.json()).then(data => {
-  if (!data.length) return;
-  new Chart(document.getElementById('clientsChart'), {
-    type: 'bar',
-    data: {
-      labels: data.map(d => d.client.length > 12 ? d.client.substring(0,12)+'…' : d.client),
-      datasets: [{
-        data: data.map(d => d.revenue),
-        backgroundColor: [
-          'rgba(108,71,255,0.85)',
-          'rgba(108,71,255,0.70)',
-          'rgba(108,71,255,0.57)',
-          'rgba(108,71,255,0.45)',
-          'rgba(108,71,255,0.33)',
-          'rgba(108,71,255,0.22)',
-        ],
-        borderRadius: 8,
-        borderSkipped: false,
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { beginAtZero: true, grid: { color: '#f0f0f5' }, ticks: { color: '#72727a', font: { size: 10 } } },
-        y: { grid: { display: false }, ticks: { color: '#72727a', font: { size: 11 } } }
-      }
-    }
+// AI Insights
+const ICONS = {
+  revenue: '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>',
+  payment: '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+  client:  '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>',
+  overdue: '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>',
+  service: '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+};
+const COLORS = {
+  green:  { bg: '#f0fdf4', border: '#dcfce7', text: '#16a34a' },
+  red:    { bg: '#fef2f2', border: '#fee2e2', text: '#dc2626' },
+  purple: { bg: '#f3f0ff', border: '#ede9fe', text: '#7c3aed' },
+  blue:   { bg: '#eff6ff', border: '#dbeafe', text: '#2563eb' },
+  amber:  { bg: '#fffbeb', border: '#fef3c7', text: '#d97706' },
+  gray:   { bg: '#f8f8fc', border: '#eee9f5', text: '#8b8b9e' },
+};
+
+fetch('/api/smart-insights')
+  .then(r => r.json())
+  .then(data => {
+    const el = document.getElementById('insightsList');
+    if (!data.insights || !data.insights.length) { el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:12px;">Add invoices to see insights</div>'; return; }
+    el.innerHTML = data.insights.slice(0, 5).map(ins => {
+      const c = COLORS[ins.color] || COLORS.gray;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:${c.bg};border:1px solid ${c.border};border-radius:9px;">
+        <div style="width:28px;height:28px;background:white;border:1px solid ${c.border};border-radius:7px;display:flex;align-items:center;justify-content:center;color:${c.text};flex-shrink:0;">${ICONS[ins.type]||ICONS.service}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:600;color:#1a1a2e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ins.title}</div>
+          <div style="font-size:10px;color:#8b8b9e;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ins.description}</div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:${c.text};flex-shrink:0;">${ins.metric}</div>
+      </div>`;
+    }).join('');
   });
-});
 </script>
 {% endblock %}

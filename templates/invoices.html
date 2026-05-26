@@ -1,92 +1,82 @@
 {% extends 'base.html' %}
 {% block title %}Invoices — Billify{% endblock %}
+{% block page_title %}Invoices{% endblock %}
+{% block page_subtitle %}Manage and track all your invoices{% endblock %}
+
+{% block header_actions %}
+<button id="bulkDeleteBtn" onclick="confirmBulkDelete()" style="display:none;background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.2);border-radius:10px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;">
+  Delete (<span id="selectedCount">0</span>)
+</button>
+<a href="{{ url_for('new_invoice') }}" class="btn-primary">
+  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+  New Invoice
+</a>
+{% endblock %}
+
 {% block content %}
-<div class="flex items-center justify-between mb-8 fade-up fade-up-1">
-  <div>
-    <h2 class="font-display font-700" style="font-size:26px;letter-spacing:-0.5px;">All Invoices</h2>
-    <p style="color:var(--muted);font-size:14px;margin-top:4px;">Manage and track all your invoices</p>
-  </div>
-  <div class="flex items-center gap-3">
-    <button id="bulkDeleteBtn" onclick="confirmBulkDelete()" style="display:none;background:#fee2e2;color:#991b1b;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:500;cursor:pointer;">
-      Delete Selected (<span id="selectedCount">0</span>)
-    </button>
-    <a href="{{ url_for('new_invoice') }}" class="btn-primary flex items-center gap-2" style="padding:10px 18px;font-size:13px;text-decoration:none;">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      New Invoice
-    </a>
-  </div>
-</div>
 
 <!-- Filters -->
-<div class="card p-4 mb-5 fade-up fade-up-2">
-  <form method="GET" class="flex flex-wrap gap-3 items-center">
-    <input type="text" name="search" value="{{ search }}" placeholder="Search client or invoice #..."
-      style="flex:1;min-width:200px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 14px;font-size:13px;color:var(--text);outline:none;"
-      onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
-    <select name="status"
-      style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 14px;font-size:13px;color:var(--text);outline:none;cursor:pointer;">
+<div class="card fade-up fade-up-1" style="padding:16px 20px;margin-bottom:16px;">
+  <form method="GET" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+    <input type="text" name="search" value="{{ search }}" placeholder="Search client or invoice #..." style="flex:1;min-width:200px;"/>
+    <select name="status" style="width:160px;">
       <option value="">All Statuses</option>
       {% for s in ['Draft','Unpaid','Paid','Overdue'] %}
       <option value="{{ s }}" {% if status_filter==s %}selected{% endif %}>{{ s }}</option>
       {% endfor %}
     </select>
-    <button type="submit" class="btn-primary" style="padding:9px 18px;font-size:13px;border:none;cursor:pointer;">Filter</button>
+    <button type="submit" class="btn-primary" style="padding:10px 18px;">Filter</button>
     {% if status_filter or search %}
     <a href="{{ url_for('invoices') }}" style="font-size:13px;color:var(--muted);text-decoration:none;">Clear</a>
     {% endif %}
   </form>
 </div>
 
-<!-- Bulk Delete Form -->
 <form method="POST" action="{{ url_for('bulk_delete') }}" id="bulkForm">
-
-<!-- Table -->
-<div class="card fade-up fade-up-3">
+<div class="card fade-up fade-up-2">
   {% if invoices %}
-
-  <!-- Select All Bar -->
-  <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:16px 16px 0 0;">
-    <input type="checkbox" id="selectAll" onchange="toggleAll(this)" style="width:16px;height:16px;accent-color:#6c47ff;cursor:pointer;" />
-    <label for="selectAll" style="font-size:13px;color:var(--muted);cursor:pointer;">Select all</label>
+  <div style="padding:10px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+    <input type="checkbox" id="selectAll" onchange="toggleAll(this)" style="width:15px;height:15px;accent-color:#6c47ff;cursor:pointer;"/>
+    <label for="selectAll" style="font-size:12px;color:var(--muted);cursor:pointer;">Select all</label>
   </div>
-
-  <div class="overflow-x-auto">
-    <table style="width:100%;font-size:13px;">
+  <div style="overflow-x:auto;">
+    <table>
       <thead>
-        <tr style="border-bottom:1px solid var(--border);">
-          <th style="padding:12px 20px;width:40px;"></th>
-          {% for col in ['Invoice #', 'Client', 'Issue Date', 'Due Date', 'Total', 'Status', 'Actions'] %}
-          <th style="padding:12px 20px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">{{ col }}</th>
-          {% endfor %}
+        <tr>
+          <th style="width:40px;"></th>
+          <th>Invoice #</th>
+          <th>Client</th>
+          <th>Issue Date</th>
+          <th>Due Date</th>
+          <th style="text-align:right;">Total</th>
+          <th style="text-align:center;">Status</th>
+          <th style="text-align:right;">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for inv in invoices %}
-        <tr style="border-bottom:1px solid var(--border);transition:background 0.1s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
-          <td style="padding:14px 20px;">
-            <input type="checkbox" name="invoice_ids" value="{{ inv.id }}" class="row-checkbox" onchange="updateCount()"
-              style="width:16px;height:16px;accent-color:#6c47ff;cursor:pointer;" />
-          </td>
-          <td style="padding:14px 20px;">
-            <a href="{{ url_for('view_invoice', id=inv.id) }}" style="font-weight:600;color:var(--accent);text-decoration:none;">{{ inv.invoice_number }}</a>
-          </td>
-          <td style="padding:14px 20px;">
+        <tr>
+          <td><input type="checkbox" name="invoice_ids" value="{{ inv.id }}" class="row-checkbox" onchange="updateCount()" style="width:15px;height:15px;accent-color:#6c47ff;cursor:pointer;"/></td>
+          <td><a href="{{ url_for('view_invoice', id=inv.id) }}" style="color:#9b6dff;font-weight:600;text-decoration:none;">{{ inv.invoice_number }}</a></td>
+          <td>
             <div style="font-weight:500;color:var(--text);">{{ inv.client_name }}</div>
             {% if inv.client_email %}<div style="font-size:11px;color:var(--muted);">{{ inv.client_email }}</div>{% endif %}
           </td>
-          <td style="padding:14px 20px;color:var(--muted);">{{ inv.issue_date.strftime('%d %b %Y') }}</td>
-          <td style="padding:14px 20px;color:var(--muted);">{{ inv.due_date.strftime('%d %b %Y') }}</td>
-          <td style="padding:14px 20px;font-weight:600;">RM {{ "%.2f"|format(inv.total) }}</td>
-          <td style="padding:14px 20px;">
-            <span style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;" class="badge-{{ inv.status.lower() }}">{{ inv.status }}</span>
+          <td style="color:var(--muted);">{{ inv.issue_date.strftime('%d %b %Y') }}</td>
+          <td style="color:var(--muted);">{{ inv.due_date.strftime('%d %b %Y') }}</td>
+          <td style="text-align:right;font-weight:600;color:var(--text);">RM {{ "%.2f"|format(inv.total) }}</td>
+          <td style="text-align:center;">
+            {% if inv.status == 'Paid' %}<span class="badge-paid">Paid</span>
+            {% elif inv.status == 'Overdue' %}<span class="badge-overdue">Overdue</span>
+            {% elif inv.status == 'Unpaid' %}<span class="badge-unpaid">Unpaid</span>
+            {% else %}<span class="badge-draft">Draft</span>{% endif %}
           </td>
-          <td style="padding:14px 20px;">
-            <div class="flex items-center gap-3">
-              <a href="{{ url_for('view_invoice', id=inv.id) }}" style="font-size:12px;color:var(--accent);font-weight:500;text-decoration:none;">View</a>
+          <td style="text-align:right;">
+            <div style="display:flex;align-items:center;justify-content:flex-end;gap:14px;">
+              <a href="{{ url_for('view_invoice', id=inv.id) }}" style="font-size:12px;color:#9b6dff;font-weight:500;text-decoration:none;">View</a>
               <a href="{{ url_for('edit_invoice', id=inv.id) }}" style="font-size:12px;color:var(--muted);font-weight:500;text-decoration:none;">Edit</a>
-              <form method="POST" action="{{ url_for('delete_invoice', id=inv.id) }}"
-                    onsubmit="return confirm('Delete invoice {{ inv.invoice_number }}?')">
-                <button type="submit" style="font-size:12px;color:#dc2626;font-weight:500;background:none;border:none;cursor:pointer;padding:0;">Delete</button>
+              <form method="POST" action="{{ url_for('delete_invoice', id=inv.id) }}" style="display:inline;" onsubmit="return confirm('Delete invoice {{ inv.invoice_number }}?')">
+                <button type="submit" style="font-size:12px;color:#f87171;font-weight:500;background:none;border:none;cursor:pointer;padding:0;">Delete</button>
               </form>
             </div>
           </td>
@@ -97,9 +87,9 @@
   </div>
   {% else %}
   <div style="padding:80px;text-align:center;">
-    <svg style="width:40px;height:40px;color:#d1d5db;margin:0 auto 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-    <p style="color:var(--muted);font-size:14px;margin-bottom:16px;">No invoices found</p>
-    <a href="{{ url_for('new_invoice') }}" class="btn-primary" style="display:inline-block;padding:10px 20px;font-size:13px;text-decoration:none;">Create Invoice</a>
+    <svg width="40" height="40" fill="none" stroke="var(--muted)" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 12px;display:block;"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:16px;">No invoices found</p>
+    <a href="{{ url_for('new_invoice') }}" class="btn-primary">Create Invoice</a>
   </div>
   {% endif %}
 </div>
@@ -112,17 +102,15 @@ function toggleAll(cb) {
   document.querySelectorAll('.row-checkbox').forEach(c => c.checked = cb.checked);
   updateCount();
 }
-
 function updateCount() {
   const checked = document.querySelectorAll('.row-checkbox:checked').length;
   document.getElementById('selectedCount').textContent = checked;
   document.getElementById('bulkDeleteBtn').style.display = checked > 0 ? 'block' : 'none';
   document.getElementById('selectAll').checked = checked === document.querySelectorAll('.row-checkbox').length;
 }
-
 function confirmBulkDelete() {
   const count = document.querySelectorAll('.row-checkbox:checked').length;
-  if (confirm(`Are you sure you want to delete ${count} invoice(s)? This cannot be undone.`)) {
+  if (confirm(`Delete ${count} invoice(s)? This cannot be undone.`)) {
     document.getElementById('bulkForm').submit();
   }
 }

@@ -1,163 +1,115 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{% block title %}Billify{% endblock %}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    * { font-family: 'DM Sans', sans-serif; }
-    .font-display { font-family: 'Syne', sans-serif; }
-    :root {
-      --accent: #6c47ff;
-      --accent-light: #ede9ff;
-      --accent-dark: #4a2fe0;
-      --surface: #f7f7fb;
-      --card: #ffffff;
-      --border: #ebebf0;
-      --text: #16161a;
-      --muted: #72727a;
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',-apple-system,sans-serif;background:#f5f3fa;color:#1a1a2e;min-height:100vh;}
+    :root{
+      --accent:#7c3aed;--accent-light:#a78bfa;--accent-bg:#f3f0ff;--accent-border:#ede9fe;
+      --bg:#f5f3fa;--surface:#ffffff;--card:#ffffff;
+      --border:#eee9f5;--text:#1a1a2e;--muted:#8b8b9e;--muted-light:#6b6b80;
     }
-    .sidebar-link { transition: all 0.15s ease; }
-    .sidebar-link:hover { background: rgba(108,71,255,0.08); color: var(--accent); }
-    .sidebar-link.active { background: var(--accent); color: white; }
-    .sidebar-link.active svg { stroke: white; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; }
-    .btn-primary { background: var(--accent); color: white; border-radius: 10px; font-weight: 500; transition: all 0.15s; }
-    .btn-primary:hover { background: var(--accent-dark); transform: translateY(-1px); }
-    .badge-paid { background: #dcfce7; color: #166534; }
-    .badge-unpaid { background: #fef9c3; color: #854d0e; }
-    .badge-overdue { background: #fee2e2; color: #991b1b; }
-    .badge-draft { background: #f1f5f9; color: #475569; }
-    @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-    .fade-up { animation: fadeUp 0.4s ease forwards; }
-    .fade-up-1 { animation-delay: 0.05s; opacity: 0; }
-    .fade-up-2 { animation-delay: 0.1s; opacity: 0; }
-    .fade-up-3 { animation-delay: 0.15s; opacity: 0; }
-    .fade-up-4 { animation-delay: 0.2s; opacity: 0; }
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;}
+    .btn-primary{background:var(--accent);color:white;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-family:inherit;}
+    .btn-primary:hover{background:#6d28d9;transform:translateY(-1px);}
+    .btn-secondary{background:white;color:var(--muted-light);border:1px solid var(--border);border-radius:10px;padding:9px 16px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-family:inherit;}
+    .btn-secondary:hover{background:#faf8ff;color:var(--text);border-color:#d8d0e8;}
+    .btn-danger{background:#fef2f2;color:#dc2626;border:1px solid #fee2e2;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;} .btn-danger:hover{background:#fee2e2;}
+    .badge-paid{background:#f0fdf4;color:#16a34a;border:1px solid #dcfce7;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+    .badge-overdue{background:#fef2f2;color:#dc2626;border:1px solid #fee2e2;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+    .badge-unpaid{background:#fffbeb;color:#d97706;border:1px solid #fef3c7;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+    .badge-draft{background:#f8f8fc;color:#8b8b9e;border:1px solid var(--border);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+    input,select,textarea{background:white;border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:14px;padding:10px 14px;outline:none;transition:border-color .2s;width:100%;}
+    input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,0.08);}
+    input::placeholder,textarea::placeholder{color:#bbb;}
+    label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th{padding:11px 20px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);}
+    td{padding:14px 20px;border-bottom:1px solid var(--border);color:var(--text);}
+    tr:last-child td{border-bottom:none;} tr:hover td{background:#faf8ff;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+    .fade-up{animation:fadeUp .3s ease forwards;opacity:0;}
+    .fade-up-1{animation-delay:.05s;}.fade-up-2{animation-delay:.1s;}.fade-up-3{animation-delay:.15s;}
+    ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(124,58,237,0.2);border-radius:3px;}
   </style>
   {% block head %}{% endblock %}
 </head>
-<body style="background: var(--surface); color: var(--text);">
+<body>
 
 {% if current_user.is_authenticated %}
-<div class="flex min-h-screen">
-  <!-- Sidebar -->
-  <aside style="width:260px; background:#16161a; flex-shrink:0;" class="fixed h-full z-10 flex flex-col">
-    <!-- Logo -->
-    <div class="px-6 py-6 border-b" style="border-color:#2a2a30;">
-      <div class="flex items-center gap-3">
-        <div style="width:38px;height:38px;background:linear-gradient(135deg,#6c47ff,#9b6dff);border-radius:10px;flex-shrink:0;position:relative;overflow:hidden;" class="flex items-center justify-center">
-          <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.15) 0%,transparent 60%);"></div>
-          <span class="font-display font-700 text-white" style="font-size:15px;letter-spacing:-0.5px;position:relative;z-index:1;">BL</span>
-        </div>
-        <div>
-          <div class="font-display font-700 text-white" style="font-size:18px;letter-spacing:-0.5px;">Billify</div>
-          <div style="font-size:10px;color:#72727a;letter-spacing:0.05em;text-transform:uppercase;">Invoice Management</div>
-        </div>
+<!-- Dark Sidebar -->
+<aside style="width:240px;background:linear-gradient(180deg,#0f0f1a,#1a1428);border-right:1px solid rgba(255,255,255,0.06);position:fixed;height:100vh;display:flex;flex-direction:column;z-index:20;">
+  <div style="padding:24px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
+    <a href="{{ url_for('dashboard') }}" style="text-decoration:none;">
+      <span style="font-size:22px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,#fff 40%,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 16px rgba(139,92,246,0.4));">Billify</span>
+    </a>
+  </div>
+  <nav style="flex:1;padding:16px 12px;overflow-y:auto;">
+    <div style="font-size:10px;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:.1em;padding:0 10px;margin-bottom:8px;">Menu</div>
+    {% set nav_items = [
+      ('dashboard', 'Dashboard', 'dashboard', 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'),
+      ('invoices', 'Invoices', 'invoices,new_invoice,edit_invoice,view_invoice', 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'),
+      ('reports', 'Reports', 'reports', 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'),
+      ('import_csv', 'Import', 'import_csv', 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12'),
+      ('feedback', 'Feedback', 'feedback', 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z'),
+    ] %}
+    {% for route, label, endpoints, icon in nav_items %}
+    <a href="{{ url_for(route) }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;text-decoration:none;font-size:13px;font-weight:500;margin-bottom:2px;transition:all .15s;{% if request.endpoint in endpoints.split(',') %}background:rgba(124,58,237,0.15);color:#c084fc;{% else %}color:rgba(255,255,255,0.5);{% endif %}">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="{{ icon }}"/></svg>
+      {{ label }}
+    </a>
+    {% endfor %}
+    {% if current_user.is_admin %}
+    <div style="border-top:1px solid rgba(255,255,255,0.06);margin:12px 0;"></div>
+    <a href="{{ url_for('admin_dashboard') }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;text-decoration:none;font-size:13px;font-weight:500;color:#fbbf24;">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      Admin Panel
+    </a>
+    {% endif %}
+  </nav>
+  <div style="padding:16px 12px;border-top:1px solid rgba(255,255,255,0.06);">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.04);border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+      <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#a78bfa);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:white;flex-shrink:0;">{{ current_user.name[0].upper() }}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ current_user.name }}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ current_user.email }}</div>
       </div>
+      <a href="{{ url_for('logout') }}" title="Logout" style="color:rgba(255,255,255,0.3);transition:color .2s;" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+      </a>
     </div>
+  </div>
+</aside>
 
-    <!-- Nav -->
-    <nav class="flex-1 px-3 py-5 space-y-1">
-      <div style="font-size:10px;color:#4a4a52;text-transform:uppercase;letter-spacing:0.08em;padding:0 12px;margin-bottom:8px;">Menu</div>
-      <a href="{{ url_for('dashboard') }}"
-         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.endpoint == 'dashboard' %}active{% else %}text-gray-400{% endif %}">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-        Dashboard
-      </a>
-      <a href="{{ url_for('invoices') }}"
-         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.endpoint in ('invoices','view_invoice','edit_invoice') %}active{% else %}text-gray-400{% endif %}">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        All Invoices
-      </a>
-      <a href="{{ url_for('new_invoice') }}"
-         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.endpoint == 'new_invoice' %}active{% else %}text-gray-400{% endif %}">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        New Invoice
-      </a>
-      <a href="{{ url_for('reports') }}"
-         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.endpoint == 'reports' %}active{% else %}text-gray-400{% endif %}">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        Reports
-      </a>
-      <a href="{{ url_for('import_csv') }}"
-         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.endpoint == 'import_csv' %}active{% else %}text-gray-400{% endif %}">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-        Import CSV
-      </a>
-      <a href="{{ url_for('feedback') }}"
-         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.endpoint == 'feedback' %}active{% else %}text-gray-400{% endif %}">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
-        Feedback
-      </a>
-      {% if current_user.is_admin %}
-      <div style="border-top:1px solid #2a2a30;margin:8px 0;"></div>
-      <a href="{{ url_for('admin_dashboard') }}"
-         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400"
-         style="background:rgba(108,71,255,0.08);color:#6c47ff !important;">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-        Admin Panel
-      </a>
-      {% endif %}
-    </nav>
-
-    <!-- User -->
-    <div class="px-3 py-4 border-t" style="border-color:#2a2a30;">
-      <div class="flex items-center gap-3 px-3 py-2 rounded-xl" style="background:#1e1e24;">
-        <div style="width:32px;height:32px;border-radius:8px;background:var(--accent);flex-shrink:0;" class="flex items-center justify-center text-white text-sm font-bold font-display">
-          {{ current_user.name[0].upper() }}
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="text-sm font-medium text-white truncate">{{ current_user.name }}</div>
-          <div style="font-size:11px;color:#72727a;" class="truncate">{{ current_user.email }}</div>
-        </div>
-        <a href="{{ url_for('logout') }}" title="Sign out">
-          <svg class="w-4 h-4" style="color:#72727a;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-        </a>
-      </div>
+<div style="margin-left:240px;min-height:100vh;display:flex;flex-direction:column;">
+  <header style="position:sticky;top:0;z-index:10;background:rgba(245,243,250,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <h1 style="font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.3px;">{% block page_title %}{% endblock %}</h1>
+      <p style="font-size:12px;color:var(--muted);margin-top:2px;">{% block page_subtitle %}{% endblock %}</p>
     </div>
-  </aside>
-
-  <!-- Main -->
-  <main style="margin-left:260px;" class="flex-1 p-8">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="mb-6 space-y-2">
+    <div style="display:flex;align-items:center;gap:10px;">{% block header_actions %}{% endblock %}</div>
+  </header>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div style="padding:16px 28px 0;">
         {% for category, message in messages %}
-          <div class="px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2
-            {% if category == 'error' %}bg-red-50 text-red-700 border border-red-100
-            {% else %}bg-green-50 text-green-700 border border-green-100{% endif %}">
-            {% if category == 'error' %}
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            {% else %}
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-            {% endif %}
-            {{ message }}
-          </div>
+          <div style="padding:12px 16px;border-radius:10px;font-size:13px;font-weight:500;margin-bottom:8px;{% if category == 'error' %}background:#fef2f2;color:#dc2626;border:1px solid #fee2e2;{% else %}background:#f0fdf4;color:#16a34a;border:1px solid #dcfce7;{% endif %}">{{ message }}</div>
         {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
-    {% block content %}{% endblock %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  <main style="padding:28px;flex:1;">
+{% endif %}
+
+{% block content %}{% endblock %}
+
+{% if current_user.is_authenticated %}
   </main>
 </div>
-
-{% else %}
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div class="fixed top-4 right-4 z-50 space-y-2">
-    {% for category, message in messages %}
-      <div class="px-4 py-3 rounded-xl text-sm font-medium shadow-lg
-        {% if category == 'error' %}bg-red-50 text-red-700{% else %}bg-green-50 text-green-700{% endif %}">
-        {{ message }}
-      </div>
-    {% endfor %}
-    </div>
-  {% endif %}
-{% endwith %}
-{% block auth_content %}{% endblock %}
 {% endif %}
 
 {% block scripts %}{% endblock %}

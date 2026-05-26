@@ -395,11 +395,29 @@ def dashboard():
     update_overdue_invoices()
     invoices = Invoice.query.filter_by(user_id=current_user.id).all()
 
-    total_revenue = sum(i.total for i in invoices if i.status == 'Paid')
-    outstanding = sum(i.total for i in invoices if i.status in ('Unpaid', 'Overdue'))
-    overdue_count = sum(1 for i in invoices if i.status == 'Overdue')
-    total_invoices = len(invoices)
+    # This month filtering
+    now = datetime.now()
+    this_month = [i for i in invoices if i.issue_date.month == now.month and i.issue_date.year == now.year]
+    last_month_num = (now.month - 1) or 12
+    last_year = now.year if now.month > 1 else now.year - 1
+    last_month = [i for i in invoices if i.issue_date.month == last_month_num and i.issue_date.year == last_year]
 
+    # This month KPIs
+    this_revenue = sum(i.total for i in this_month if i.status == 'Paid')
+    last_revenue = sum(i.total for i in last_month if i.status == 'Paid')
+    revenue_pct = round(((this_revenue - last_revenue) / last_revenue * 100), 1) if last_revenue > 0 else (100.0 if this_revenue > 0 else 0.0)
+
+    this_paid = sum(1 for i in this_month if i.status == 'Paid')
+    this_total = len(this_month)
+    paid_pct = round(this_paid / this_total * 100) if this_total > 0 else 0
+
+    this_outstanding = sum(i.total for i in this_month if i.status in ('Unpaid', 'Overdue'))
+    this_outstanding_count = sum(1 for i in this_month if i.status in ('Unpaid', 'Overdue'))
+
+    this_overdue = sum(1 for i in this_month if i.status == 'Overdue')
+    this_overdue_amount = sum(i.total for i in this_month if i.status == 'Overdue')
+
+    # Overall status counts (for doughnut chart)
     status_counts = {
         'Draft': sum(1 for i in invoices if i.status == 'Draft'),
         'Unpaid': sum(1 for i in invoices if i.status == 'Unpaid'),
@@ -410,11 +428,17 @@ def dashboard():
     recent = Invoice.query.filter_by(user_id=current_user.id).order_by(Invoice.created_at.desc()).limit(5).all()
 
     return render_template('dashboard.html',
-        total_revenue=total_revenue,
-        outstanding=outstanding,
-        overdue_count=overdue_count,
-        total_invoices=total_invoices,
+        this_revenue=this_revenue,
+        revenue_pct=revenue_pct,
+        this_paid=this_paid,
+        paid_pct=paid_pct,
+        this_outstanding=this_outstanding,
+        this_outstanding_count=this_outstanding_count,
+        this_overdue=this_overdue,
+        this_overdue_amount=this_overdue_amount,
+        total_invoices=len(invoices),
         status_counts=json.dumps(status_counts),
+        status_counts_raw=status_counts,
         recent_invoices=recent
     )
 
@@ -1112,14 +1136,13 @@ def admin_delete_feedback(id):
 
 
 
-# ── Smart Business Insights ─────────────────────────────────────────────────────
+# ── Smart Business Insights ──────────────────────────────────────────────────────
 
-from collections import defaultdict, Counter
+from collections import Counter
 
 class InsightEngine:
-    """Rule-based business intelligence - no AI API calls"""
-
     def __init__(self, user_id):
+        from collections import defaultdict
         self.invoices = Invoice.query.filter_by(user_id=user_id).all()
         self.now = datetime.now()
         self.this_month = self.now.month
@@ -1130,15 +1153,10 @@ class InsightEngine:
     def get_all_insights(self):
         if not self.invoices:
             return []
-        return [
-            self._revenue_insight(),
-            self._payment_insight(),
-            self._client_insight(),
-            self._overdue_insight(),
-            self._service_insight(),
-        ]
+        return [self._revenue_insight(), self._payment_insight(), self._client_insight(), self._overdue_insight(), self._service_insight()]
 
     def _revenue_insight(self):
+        from collections import defaultdict
         this_m = [i for i in self.invoices if i.issue_date.month == self.this_month and i.issue_date.year == self.this_year and i.status == 'Paid']
         last_m = [i for i in self.invoices if i.issue_date.month == self.last_month and i.issue_date.year == self.last_year and i.status == 'Paid']
         this_rev = sum(i.total for i in this_m)
@@ -1149,88 +1167,42 @@ class InsightEngine:
         else:
             pct = ((this_rev - last_rev) / last_rev) * 100
             trend = 'up' if pct > 0 else 'down' if pct < 0 else 'flat'
-        return {
-            'type': 'revenue',
-            'trend': trend,
-            'title': f"Revenue {'up' if trend == 'up' else 'down' if trend == 'down' else 'flat'} {abs(pct):.1f}% vs last month",
-            'description': f"This month: RM {this_rev:,.2f}   Last month: RM {last_rev:,.2f}",
-            'action': 'Strong growth — keep it up' if trend == 'up' else 'Review pricing or pipeline' if trend == 'down' else 'Steady — maintain momentum',
-            'metric': f"{pct:+.1f}%",
-            'color': 'green' if trend == 'up' else 'red' if trend == 'down' else 'gray',
-        }
+        return {'type': 'revenue', 'title': f"Revenue {'up' if trend == 'up' else 'down' if trend == 'down' else 'flat'} {abs(pct):.1f}%", 'description': f"RM {this_rev:,.2f} this month vs RM {last_rev:,.2f} last month", 'metric': f"{pct:+.1f}%", 'color': 'green' if trend == 'up' else 'red' if trend == 'down' else 'gray'}
 
     def _payment_insight(self):
         paid = len([i for i in self.invoices if i.status == 'Paid'])
         total = len(self.invoices)
         pct = (paid / total * 100) if total > 0 else 0
-        if pct >= 80: label, color, action = 'Excellent', 'green', 'Collection rate is outstanding'
-        elif pct >= 60: label, color, action = 'Good', 'blue', 'Follow up on remaining invoices'
-        elif pct >= 40: label, color, action = 'Fair', 'yellow', 'Prioritise payment collection'
-        else: label, color, action = 'Needs Attention', 'red', 'Urgent — chase overdue payments'
-        return {
-            'type': 'payment',
-            'trend': 'neutral',
-            'title': f"Payment health: {label}",
-            'description': f"{paid} of {total} invoices paid ({pct:.0f}%)",
-            'action': action,
-            'metric': f"{pct:.0f}%",
-            'color': color,
-        }
+        if pct >= 80: label, color = 'Excellent', 'green'
+        elif pct >= 60: label, color = 'Good', 'blue'
+        elif pct >= 40: label, color = 'Fair', 'amber'
+        else: label, color = 'Needs attention', 'red'
+        return {'type': 'payment', 'title': f"Payment health: {label}", 'description': f"{paid} of {total} invoices paid ({pct:.0f}%)", 'metric': f"{pct:.0f}%", 'color': color}
 
     def _client_insight(self):
-        revenue_map = defaultdict(float)
+        from collections import defaultdict
+        rev = defaultdict(float)
         for inv in self.invoices:
             if inv.status == 'Paid':
-                revenue_map[inv.client_name] += inv.total
-        if not revenue_map:
-            return {'type': 'client', 'trend': 'neutral', 'title': 'No paid invoices yet', 'description': 'Complete your first paid invoice to see client insights', 'action': '', 'metric': '—', 'color': 'gray'}
-        top_name, top_val = max(revenue_map.items(), key=lambda x: x[1])
-        total = sum(revenue_map.values())
-        pct = (top_val / total * 100)
-        return {
-            'type': 'client',
-            'trend': 'up',
-            'title': f"{top_name} is your top client",
-            'description': f"Generated RM {top_val:,.2f} — {pct:.0f}% of total revenue",
-            'action': 'Prioritise this relationship',
-            'metric': f"RM {top_val:,.0f}",
-            'color': 'purple',
-        }
+                rev[inv.client_name] += inv.total
+        if not rev:
+            return {'type': 'client', 'title': 'No paid invoices yet', 'description': 'Create invoices to see client insights', 'metric': '—', 'color': 'gray'}
+        top_name, top_val = max(rev.items(), key=lambda x: x[1])
+        return {'type': 'client', 'title': f"{top_name} is top client", 'description': f"RM {top_val:,.2f} — {(top_val/sum(rev.values())*100):.0f}% of revenue", 'metric': f"RM {top_val:,.0f}", 'color': 'purple'}
 
     def _overdue_insight(self):
         overdue = [i for i in self.invoices if i.status == 'Overdue']
-        count = len(overdue)
-        total_amt = sum(i.total for i in overdue)
-        if count == 0:
-            return {'type': 'overdue', 'trend': 'up', 'title': 'No overdue invoices', 'description': 'All invoices are current — great cash flow management', 'action': '', 'metric': '0', 'color': 'green'}
-        return {
-            'type': 'overdue',
-            'trend': 'down',
-            'title': f"{count} overdue invoice{'s' if count > 1 else ''}",
-            'description': f"Total outstanding: RM {total_amt:,.2f}",
-            'action': 'Send reminders immediately',
-            'metric': f"RM {total_amt:,.0f}",
-            'color': 'red',
-        }
+        if not overdue:
+            return {'type': 'overdue', 'title': 'No overdue invoices', 'description': 'All invoices are current', 'metric': '0', 'color': 'green'}
+        return {'type': 'overdue', 'title': f"{len(overdue)} overdue invoice{'s' if len(overdue) > 1 else ''}", 'description': f"RM {sum(i.total for i in overdue):,.2f} outstanding", 'metric': f"RM {sum(i.total for i in overdue):,.0f}", 'color': 'red'}
 
     def _service_insight(self):
-        this_month_invs = [i for i in self.invoices if i.issue_date.month == self.this_month and i.issue_date.year == self.this_year]
-        services = []
-        for inv in this_month_invs:
-            for item in inv.items:
-                services.append(item.description)
+        this_invs = [i for i in self.invoices if i.issue_date.month == self.this_month and i.issue_date.year == self.this_year]
+        services = [item.description for inv in this_invs for item in inv.items]
         if not services:
-            return {'type': 'service', 'trend': 'neutral', 'title': 'No services billed this month', 'description': 'Create invoices this month to see service insights', 'action': '', 'metric': '—', 'color': 'gray'}
-        top_service, top_count = Counter(services).most_common(1)[0]
-        return {
-            'type': 'service',
-            'trend': 'neutral',
-            'title': f"{top_service} is your top service",
-            'description': f"Billed {top_count} time{'s' if top_count > 1 else ''} this month",
-            'action': 'Your core offering — focus on quality',
-            'metric': f"x{top_count}",
-            'color': 'blue',
-        }
+            return {'type': 'service', 'title': 'No services this month', 'description': 'Create invoices to see service insights', 'metric': '—', 'color': 'gray'}
+        top, count = Counter(services).most_common(1)[0]
+        return {'type': 'service', 'title': f"{top} is top service", 'description': f"Billed {count} time{'s' if count > 1 else ''} this month", 'metric': f"x{count}", 'color': 'blue'}
 
 
 @app.route('/api/smart-insights')
@@ -1238,6 +1210,7 @@ class InsightEngine:
 def get_smart_insights():
     engine = InsightEngine(current_user.id)
     return jsonify({'insights': engine.get_all_insights()})
+
 
 # ── Run ─────────────────────────────────────────────────────────────────────────
 
