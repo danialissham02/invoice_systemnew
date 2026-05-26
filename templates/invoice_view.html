@@ -28,12 +28,12 @@
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:32px;">
       <div>
-        <span style="font-size:24px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,#fff 40%,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Billify</span>
+        <span style="font-size:24px;font-weight:800;letter-spacing:-0.5px;color:#7c3aed;">Billify</span>
         <div style="font-size:13px;color:var(--muted);margin-top:4px;">{{ current_user.company or current_user.name }}</div>
         <div style="font-size:12px;color:var(--muted);">{{ current_user.email }}</div>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:28px;font-weight:800;color:rgba(0,0,0,0.03);letter-spacing:2px;">INVOICE</div>
+        <div style="font-size:28px;font-weight:800;color:#ede9fe;letter-spacing:2px;">INVOICE</div>
         <div style="font-size:16px;font-weight:700;color:var(--text);margin-top:2px;">{{ invoice.invoice_number }}</div>
         <div style="margin-top:8px;">
           {% if invoice.status == 'Paid' %}<span class="badge-paid">Paid</span>

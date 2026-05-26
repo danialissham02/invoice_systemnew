@@ -158,27 +158,36 @@ def generate_pdf_from_invoice(invoice, user):
     styles = getSampleStyleSheet()
     story = []
 
-    PURPLE = colors.HexColor('#6c47ff')
-    PURPLE_LIGHT = colors.HexColor('#ede9ff')
-    GRAY_BG = colors.HexColor('#f9fafb')
-    GRAY_BORDER = colors.HexColor('#e5e7eb')
-    MUTED = colors.HexColor('#6b7280')
-    DARK = colors.HexColor('#1f2937')
+    PURPLE = colors.HexColor('#7c3aed')
+    PURPLE_LIGHT = colors.HexColor('#f3f0ff')
+    PURPLE_BORDER = colors.HexColor('#ede9fe')
+    BG_SOFT = colors.HexColor('#faf8ff')
+    GRAY_BORDER = colors.HexColor('#eee9f5')
+    MUTED = colors.HexColor('#8b8b9e')
+    DARK = colors.HexColor('#1a1a2e')
+    TEXT_MED = colors.HexColor('#6b6b80')
 
-    # ── Header: BL logo + Billify + sender info ──────────────────────────────
-    brand_style = ParagraphStyle('brand', fontSize=22, textColor=PURPLE,
-                                 fontName='Helvetica-Bold', leading=26)
+    # ── Header ────────────────────────────────────────────────────────────────
+    brand_style = ParagraphStyle('brand', fontSize=24, textColor=PURPLE,
+                                 fontName='Helvetica-Bold', leading=28)
     sender_name_style = ParagraphStyle('sender', fontSize=12, textColor=DARK,
                                        fontName='Helvetica-Bold', leading=16, spaceBefore=6)
     sender_info_style = ParagraphStyle('senderinfo', fontSize=11, textColor=MUTED, leading=15)
     inv_num_style = ParagraphStyle('invnum', fontSize=16, textColor=DARK,
                                    fontName='Helvetica-Bold', alignment=2)
-    inv_label_style = ParagraphStyle('invlabel', fontSize=28, textColor=colors.HexColor('#e5e7eb'),
+    inv_label_style = ParagraphStyle('invlabel', fontSize=28, textColor=PURPLE_BORDER,
                                      fontName='Helvetica-Bold', alignment=2, leading=32)
+
+    # Status badge color
+    status_colors = {
+        'Paid': '#16a34a', 'Overdue': '#dc2626',
+        'Unpaid': '#d97706', 'Draft': '#8b8b9e'
+    }
+    status_color = status_colors.get(invoice.status, '#8b8b9e')
 
     header_data = [
         [
-            Paragraph('BL  Billify', brand_style),
+            Paragraph('Billify', brand_style),
             Paragraph('INVOICE', inv_label_style)
         ],
         [
@@ -187,7 +196,7 @@ def generate_pdf_from_invoice(invoice, user):
         ],
         [
             Paragraph(user.email, sender_info_style),
-            Paragraph(f'<font color="#6c47ff"><b>{invoice.status}</b></font>', sender_info_style)
+            Paragraph(f'<font color="{status_color}"><b>{invoice.status}</b></font>', sender_info_style)
         ],
     ]
     header_table = Table(header_data, colWidths=[10*cm, 8*cm])
@@ -196,37 +205,35 @@ def generate_pdf_from_invoice(invoice, user):
         ('ALIGN', (1,0), (1,-1), 'RIGHT'),
         ('BOTTOMPADDING', (0,0), (-1,-1), 4),
         ('TOPPADDING', (0,0), (-1,-1), 2),
-        ('LINEBELOW', (0,2), (-1,2), 1, GRAY_BORDER),
     ]))
     story.append(header_table)
-    story.append(Spacer(1, 0.5*cm))
+    story.append(Spacer(1, 0.6*cm))
 
     # ── Bill To + Dates ───────────────────────────────────────────────────────
     label_style = ParagraphStyle('label', fontSize=9, textColor=MUTED,
-                                 fontName='Helvetica-Bold', leading=12,
-                                 textTransform='uppercase', spaceBefore=0)
+                                 fontName='Helvetica-Bold', leading=12)
     client_name_style = ParagraphStyle('clientname', fontSize=13, textColor=DARK,
                                        fontName='Helvetica-Bold', leading=18)
     client_info_style = ParagraphStyle('clientinfo', fontSize=11, textColor=MUTED, leading=15)
     date_style = ParagraphStyle('date', fontSize=11, textColor=DARK, alignment=2, leading=16)
 
     bill_data = [
-        [Paragraph('Bill To', label_style), Paragraph('Invoice Dates', label_style)],
+        [Paragraph('BILL TO', label_style), Paragraph('INVOICE DATES', label_style)],
         [Paragraph(invoice.client_name, client_name_style),
          Paragraph(f'Issued:  <b>{invoice.issue_date.strftime("%d %b %Y")}</b>', date_style)],
         [Paragraph(invoice.client_email or '', client_info_style),
-         Paragraph(f'Due:  <font color="#6c47ff"><b>{invoice.due_date.strftime("%d %b %Y")}</b></font>', date_style)],
+         Paragraph(f'Due:  <font color="#7c3aed"><b>{invoice.due_date.strftime("%d %b %Y")}</b></font>', date_style)],
     ]
     if invoice.client_address:
         bill_data.append([Paragraph(invoice.client_address, client_info_style), Paragraph('', client_info_style)])
 
     bill_table = Table(bill_data, colWidths=[10*cm, 8*cm])
     bill_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), GRAY_BG),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
-        ('LEFTPADDING', (0,0), (-1,-1), 10),
-        ('RIGHTPADDING', (0,0), (-1,-1), 10),
+        ('BACKGROUND', (0,0), (-1,-1), BG_SOFT),
+        ('TOPPADDING', (0,0), (-1,-1), 7),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 7),
+        ('LEFTPADDING', (0,0), (-1,-1), 14),
+        ('RIGHTPADDING', (0,0), (-1,-1), 14),
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
         ('ALIGN', (1,0), (1,-1), 'RIGHT'),
         ('ROUNDEDCORNERS', [6, 6, 6, 6]),
@@ -235,77 +242,89 @@ def generate_pdf_from_invoice(invoice, user):
     story.append(Spacer(1, 0.5*cm))
 
     # ── Line Items ────────────────────────────────────────────────────────────
-    item_data = [['Description', 'Qty', 'Unit Price', 'Amount']]
+    th_style = ParagraphStyle('th', fontSize=9, textColor=MUTED, fontName='Helvetica-Bold', leading=13)
+    td_style = ParagraphStyle('td', fontSize=10, textColor=DARK, leading=14)
+    td_muted = ParagraphStyle('tdm', fontSize=10, textColor=TEXT_MED, leading=14, alignment=2)
+    td_bold = ParagraphStyle('tdb', fontSize=10, textColor=DARK, fontName='Helvetica-Bold', leading=14, alignment=2)
+
+    item_data = [
+        [Paragraph('DESCRIPTION', th_style),
+         Paragraph('QTY', ParagraphStyle('thc', parent=th_style, alignment=1)),
+         Paragraph('UNIT PRICE', ParagraphStyle('thr', parent=th_style, alignment=2)),
+         Paragraph('AMOUNT', ParagraphStyle('thr2', parent=th_style, alignment=2))],
+    ]
     for item in invoice.items:
+        qty_str = str(int(item.quantity) if item.quantity == int(item.quantity) else item.quantity)
         item_data.append([
-            item.description,
-            str(int(item.quantity) if item.quantity == int(item.quantity) else item.quantity),
-            f'RM {item.unit_price:.2f}',
-            f'RM {item.amount:.2f}'
+            Paragraph(item.description, td_style),
+            Paragraph(qty_str, ParagraphStyle('tdc', parent=td_muted, alignment=1)),
+            Paragraph(f'RM {item.unit_price:.2f}', td_muted),
+            Paragraph(f'RM {item.amount:.2f}', td_bold),
         ])
+
     item_table = Table(item_data, colWidths=[9*cm, 2*cm, 4*cm, 3*cm])
-    row_bgs = [GRAY_BG if i % 2 == 0 else colors.white for i in range(len(item_data) - 1)]
     item_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), PURPLE),
-        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,-1), 10),
-        ('ALIGN', (1,0), (-1,-1), 'RIGHT'),
-        ('BOTTOMPADDING', (0,0), (-1,0), 8),
-        ('TOPPADDING', (0,0), (-1,-1), 7),
-        ('BOTTOMPADDING', (0,1), (-1,-1), 7),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, GRAY_BG]),
-        ('GRID', (0,0), (-1,-1), 0.5, GRAY_BORDER),
+        ('LINEBELOW', (0,0), (-1,0), 1.5, PURPLE_BORDER),
+        ('LINEBELOW', (0,1), (-1,-1), 0.5, colors.HexColor('#f5f3fa')),
+        ('TOPPADDING', (0,0), (-1,-1), 8),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ('LEFTPADDING', (0,0), (-1,-1), 10),
+        ('RIGHTPADDING', (0,0), (-1,-1), 10),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
     story.append(item_table)
     story.append(Spacer(1, 0.3*cm))
 
     # ── Totals ────────────────────────────────────────────────────────────────
+    total_label = ParagraphStyle('totlabel', fontSize=10, textColor=MUTED, alignment=2, leading=14)
+    total_val = ParagraphStyle('totval', fontSize=10, textColor=DARK, alignment=2, leading=14)
+    total_final_l = ParagraphStyle('totfinall', fontSize=13, textColor=DARK, fontName='Helvetica-Bold', alignment=2, leading=16)
+    total_final_v = ParagraphStyle('totfinalv', fontSize=13, textColor=PURPLE, fontName='Helvetica-Bold', alignment=2, leading=16)
+
     totals_data = [
-        ['', 'Subtotal', f'RM {invoice.subtotal:.2f}'],
-        ['', f'Tax ({invoice.tax_percent}%)', f'RM {invoice.tax_amount:.2f}'],
-        ['', 'TOTAL DUE', f'RM {invoice.total:.2f}'],
+        ['', Paragraph('Subtotal', total_label), Paragraph(f'RM {invoice.subtotal:.2f}', total_val)],
     ]
+    if invoice.tax_percent > 0:
+        totals_data.append(['', Paragraph(f'Tax ({invoice.tax_percent}%)', total_label), Paragraph(f'RM {invoice.tax_amount:.2f}', total_val)])
+    totals_data.append(['', Paragraph('Total Due', total_final_l), Paragraph(f'RM {invoice.total:.2f}', total_final_v)])
+
     totals_table = Table(totals_data, colWidths=[9*cm, 5*cm, 4*cm])
+    last_row = len(totals_data) - 1
     totals_table.setStyle(TableStyle([
-        ('FONTNAME', (1,2), (-1,2), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,-1), 10),
-        ('FONTSIZE', (1,2), (-1,2), 12),
-        ('ALIGN', (1,0), (-1,-1), 'RIGHT'),
-        ('TEXTCOLOR', (2,2), (2,2), PURPLE),
-        ('TEXTCOLOR', (1,0), (1,1), MUTED),
-        ('LINEABOVE', (1,2), (-1,2), 1.5, PURPLE),
         ('TOPPADDING', (0,0), (-1,-1), 6),
         ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('LINEABOVE', (1, last_row), (-1, last_row), 1.5, PURPLE),
+        ('TOPPADDING', (0, last_row), (-1, last_row), 10),
     ]))
     story.append(totals_table)
 
     # ── Notes ─────────────────────────────────────────────────────────────────
     if invoice.notes:
-        story.append(Spacer(1, 0.5*cm))
+        story.append(Spacer(1, 0.6*cm))
         notes_label = ParagraphStyle('noteslabel', fontSize=9, textColor=PURPLE,
-                                     fontName='Helvetica-Bold', textTransform='uppercase')
-        notes_body = ParagraphStyle('notesbody', fontSize=11, textColor=DARK, leading=16)
+                                     fontName='Helvetica-Bold')
+        notes_body = ParagraphStyle('notesbody', fontSize=11, textColor=TEXT_MED, leading=16)
         notes_data = [
-            [Paragraph('Notes', notes_label)],
+            [Paragraph('NOTES', notes_label)],
             [Paragraph(invoice.notes, notes_body)],
         ]
         notes_table = Table(notes_data, colWidths=[18*cm])
         notes_table.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,-1), PURPLE_LIGHT),
-            ('LEFTPADDING', (0,0), (-1,-1), 12),
-            ('RIGHTPADDING', (0,0), (-1,-1), 12),
-            ('TOPPADDING', (0,0), (-1,-1), 8),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 8),
-            ('LINEAFTER', (0,0), (0,-1), 3, PURPLE),
+            ('BACKGROUND', (0,0), (-1,-1), BG_SOFT),
+            ('LEFTPADDING', (0,0), (-1,-1), 14),
+            ('RIGHTPADDING', (0,0), (-1,-1), 14),
+            ('TOPPADDING', (0,0), (-1,-1), 10),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+            ('LINEAFTER', (-1,0), (-1,-1), 0, colors.white),
+            ('LINEBEFORE', (0,0), (0,-1), 3, PURPLE),
         ]))
         story.append(notes_table)
 
     # ── Footer ────────────────────────────────────────────────────────────────
     story.append(Spacer(1, 1*cm))
-    footer_style = ParagraphStyle('footer', fontSize=9, textColor=MUTED,
+    footer_style = ParagraphStyle('footer', fontSize=10, textColor=MUTED,
                                   alignment=1, leading=14)
-    story.append(Paragraph('<font color="#6c47ff"><b>Billify</b></font> — Thank you for your business!', footer_style))
+    story.append(Paragraph('<font color="#7c3aed"><b>Billify</b></font> — Thank you for your business', footer_style))
 
     doc.build(story)
     buffer.seek(0)
@@ -395,29 +414,11 @@ def dashboard():
     update_overdue_invoices()
     invoices = Invoice.query.filter_by(user_id=current_user.id).all()
 
-    # This month filtering
-    now = datetime.now()
-    this_month = [i for i in invoices if i.issue_date.month == now.month and i.issue_date.year == now.year]
-    last_month_num = (now.month - 1) or 12
-    last_year = now.year if now.month > 1 else now.year - 1
-    last_month = [i for i in invoices if i.issue_date.month == last_month_num and i.issue_date.year == last_year]
+    total_revenue = sum(i.total for i in invoices if i.status == 'Paid')
+    outstanding = sum(i.total for i in invoices if i.status in ('Unpaid', 'Overdue'))
+    overdue_count = sum(1 for i in invoices if i.status == 'Overdue')
+    total_invoices = len(invoices)
 
-    # This month KPIs
-    this_revenue = sum(i.total for i in this_month if i.status == 'Paid')
-    last_revenue = sum(i.total for i in last_month if i.status == 'Paid')
-    revenue_pct = round(((this_revenue - last_revenue) / last_revenue * 100), 1) if last_revenue > 0 else (100.0 if this_revenue > 0 else 0.0)
-
-    this_paid = sum(1 for i in this_month if i.status == 'Paid')
-    this_total = len(this_month)
-    paid_pct = round(this_paid / this_total * 100) if this_total > 0 else 0
-
-    this_outstanding = sum(i.total for i in this_month if i.status in ('Unpaid', 'Overdue'))
-    this_outstanding_count = sum(1 for i in this_month if i.status in ('Unpaid', 'Overdue'))
-
-    this_overdue = sum(1 for i in this_month if i.status == 'Overdue')
-    this_overdue_amount = sum(i.total for i in this_month if i.status == 'Overdue')
-
-    # Overall status counts (for doughnut chart)
     status_counts = {
         'Draft': sum(1 for i in invoices if i.status == 'Draft'),
         'Unpaid': sum(1 for i in invoices if i.status == 'Unpaid'),
@@ -426,6 +427,27 @@ def dashboard():
     }
 
     recent = Invoice.query.filter_by(user_id=current_user.id).order_by(Invoice.created_at.desc()).limit(5).all()
+
+    # This month filtering
+    now = datetime.now()
+    this_month_invs = [i for i in invoices if i.issue_date.month == now.month and i.issue_date.year == now.year]
+    last_month_num = (now.month - 1) or 12
+    last_yr = now.year if now.month > 1 else now.year - 1
+    last_month_invs = [i for i in invoices if i.issue_date.month == last_month_num and i.issue_date.year == last_yr]
+
+    this_revenue = sum(i.total for i in this_month_invs if i.status == 'Paid')
+    last_revenue = sum(i.total for i in last_month_invs if i.status == 'Paid')
+    revenue_pct = round(((this_revenue - last_revenue) / last_revenue * 100), 1) if last_revenue > 0 else (100.0 if this_revenue > 0 else 0.0)
+
+    this_paid = sum(1 for i in this_month_invs if i.status == 'Paid')
+    this_total_count = len(this_month_invs)
+    paid_pct = round(this_paid / this_total_count * 100) if this_total_count > 0 else 0
+
+    this_outstanding = sum(i.total for i in this_month_invs if i.status in ('Unpaid', 'Overdue'))
+    this_outstanding_count = sum(1 for i in this_month_invs if i.status in ('Unpaid', 'Overdue'))
+
+    this_overdue = sum(1 for i in this_month_invs if i.status == 'Overdue')
+    this_overdue_amount = sum(i.total for i in this_month_invs if i.status == 'Overdue')
 
     return render_template('dashboard.html',
         this_revenue=this_revenue,
@@ -436,7 +458,7 @@ def dashboard():
         this_outstanding_count=this_outstanding_count,
         this_overdue=this_overdue,
         this_overdue_amount=this_overdue_amount,
-        total_invoices=len(invoices),
+        total_invoices=total_invoices,
         status_counts=json.dumps(status_counts),
         status_counts_raw=status_counts,
         recent_invoices=recent
@@ -539,6 +561,7 @@ def new_invoice():
 @app.route('/invoices/<int:id>')
 @login_required
 def view_invoice(id):
+    update_overdue_invoices()
     inv = Invoice.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     return render_template('invoice_view.html', invoice=inv)
 
@@ -1151,27 +1174,19 @@ class InsightEngine:
         self.last_year = self.this_year if self.this_month > 1 else self.this_year - 1
 
     def get_all_insights(self):
-        if not self.invoices:
-            return []
+        if not self.invoices: return []
         return [self._revenue_insight(), self._payment_insight(), self._client_insight(), self._overdue_insight(), self._service_insight()]
 
     def _revenue_insight(self):
-        from collections import defaultdict
         this_m = [i for i in self.invoices if i.issue_date.month == self.this_month and i.issue_date.year == self.this_year and i.status == 'Paid']
         last_m = [i for i in self.invoices if i.issue_date.month == self.last_month and i.issue_date.year == self.last_year and i.status == 'Paid']
-        this_rev = sum(i.total for i in this_m)
-        last_rev = sum(i.total for i in last_m)
-        if last_rev == 0:
-            pct = 100.0 if this_rev > 0 else 0.0
-            trend = 'up' if this_rev > 0 else 'flat'
-        else:
-            pct = ((this_rev - last_rev) / last_rev) * 100
-            trend = 'up' if pct > 0 else 'down' if pct < 0 else 'flat'
+        this_rev, last_rev = sum(i.total for i in this_m), sum(i.total for i in last_m)
+        if last_rev == 0: pct, trend = (100.0 if this_rev > 0 else 0.0), ('up' if this_rev > 0 else 'flat')
+        else: pct = ((this_rev - last_rev) / last_rev) * 100; trend = 'up' if pct > 0 else 'down' if pct < 0 else 'flat'
         return {'type': 'revenue', 'title': f"Revenue {'up' if trend == 'up' else 'down' if trend == 'down' else 'flat'} {abs(pct):.1f}%", 'description': f"RM {this_rev:,.2f} this month vs RM {last_rev:,.2f} last month", 'metric': f"{pct:+.1f}%", 'color': 'green' if trend == 'up' else 'red' if trend == 'down' else 'gray'}
 
     def _payment_insight(self):
-        paid = len([i for i in self.invoices if i.status == 'Paid'])
-        total = len(self.invoices)
+        paid, total = len([i for i in self.invoices if i.status == 'Paid']), len(self.invoices)
         pct = (paid / total * 100) if total > 0 else 0
         if pct >= 80: label, color = 'Excellent', 'green'
         elif pct >= 60: label, color = 'Good', 'blue'
@@ -1183,24 +1198,20 @@ class InsightEngine:
         from collections import defaultdict
         rev = defaultdict(float)
         for inv in self.invoices:
-            if inv.status == 'Paid':
-                rev[inv.client_name] += inv.total
-        if not rev:
-            return {'type': 'client', 'title': 'No paid invoices yet', 'description': 'Create invoices to see client insights', 'metric': '—', 'color': 'gray'}
+            if inv.status == 'Paid': rev[inv.client_name] += inv.total
+        if not rev: return {'type': 'client', 'title': 'No paid invoices yet', 'description': 'Create invoices to see client insights', 'metric': '—', 'color': 'gray'}
         top_name, top_val = max(rev.items(), key=lambda x: x[1])
         return {'type': 'client', 'title': f"{top_name} is top client", 'description': f"RM {top_val:,.2f} — {(top_val/sum(rev.values())*100):.0f}% of revenue", 'metric': f"RM {top_val:,.0f}", 'color': 'purple'}
 
     def _overdue_insight(self):
         overdue = [i for i in self.invoices if i.status == 'Overdue']
-        if not overdue:
-            return {'type': 'overdue', 'title': 'No overdue invoices', 'description': 'All invoices are current', 'metric': '0', 'color': 'green'}
+        if not overdue: return {'type': 'overdue', 'title': 'No overdue invoices', 'description': 'All invoices are current', 'metric': '0', 'color': 'green'}
         return {'type': 'overdue', 'title': f"{len(overdue)} overdue invoice{'s' if len(overdue) > 1 else ''}", 'description': f"RM {sum(i.total for i in overdue):,.2f} outstanding", 'metric': f"RM {sum(i.total for i in overdue):,.0f}", 'color': 'red'}
 
     def _service_insight(self):
         this_invs = [i for i in self.invoices if i.issue_date.month == self.this_month and i.issue_date.year == self.this_year]
         services = [item.description for inv in this_invs for item in inv.items]
-        if not services:
-            return {'type': 'service', 'title': 'No services this month', 'description': 'Create invoices to see service insights', 'metric': '—', 'color': 'gray'}
+        if not services: return {'type': 'service', 'title': 'No services this month', 'description': 'Create invoices to see service insights', 'metric': '—', 'color': 'gray'}
         top, count = Counter(services).most_common(1)[0]
         return {'type': 'service', 'title': f"{top} is top service", 'description': f"Billed {count} time{'s' if count > 1 else ''} this month", 'metric': f"x{count}", 'color': 'blue'}
 

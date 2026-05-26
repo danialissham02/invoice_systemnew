@@ -3,119 +3,106 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: Helvetica, sans-serif; font-size: 13px; color: #1f2937; margin: 40px; }
-    .label { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
-    .info-box { background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    th { background: #6c47ff; color: white; padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-    td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 13px; color: #1a1a2e; margin: 40px 48px; }
+    .label { font-size: 9px; color: #8b8b9e; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; }
     .text-right { text-align: right; }
     .text-center { text-align: center; }
-    .totals-table { width: 260px; float: right; margin-top: 10px; }
-    .totals-table td { border: none; padding: 5px 0; }
-    .total-final td { font-weight: bold; font-size: 15px; border-top: 2px solid #6c47ff; padding-top: 10px; }
-    .total-amount { color: #6c47ff; }
-    .notes-box { margin-top: 40px; padding: 15px; background: #f5f3ff; border-left: 3px solid #6c47ff; border-radius: 4px; }
-    .footer { margin-top: 50px; text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px solid #f3f4f6; padding-top: 16px; }
-    .clearfix { clear: both; }
-    .status-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; background: #ede9ff; color: #6c47ff; }
   </style>
 </head>
 <body>
+
   <!-- Header -->
-  <table style="width:100%; margin-bottom:30px; border:none;">
+  <table style="margin-bottom:32px;">
     <tr>
-      <td style="border:none; padding:0; vertical-align:top; width:50%;">
-        <!-- BL Logo -->
-        <div style="display:inline-flex; align-items:center; gap:10px; margin-bottom:10px;">
-          <div style="width:36px;height:36px;background:#6c47ff;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-            <span style="color:white;font-weight:bold;font-size:14px;">BL</span>
-          </div>
-          <span style="font-size:20px;font-weight:bold;color:#6c47ff;letter-spacing:-0.5px;">Billify</span>
-        </div>
-        <!-- Sender info below logo, clearly separated -->
-        <div style="margin-top:6px;">
-          <div style="font-weight:600;font-size:13px;color:#1f2937;">{{ user.company or user.name }}</div>
-          <div style="color:#6b7280;font-size:12px;margin-top:2px;">{{ user.email }}</div>
-        </div>
+      <td style="vertical-align:top;width:50%;padding:0;border:none;">
+        <div style="font-size:24px;font-weight:800;color:#7c3aed;letter-spacing:-0.5px;margin-bottom:8px;">Billify</div>
+        <div style="font-size:13px;font-weight:600;color:#1a1a2e;">{{ user.company or user.name }}</div>
+        <div style="font-size:12px;color:#8b8b9e;margin-top:2px;">{{ user.email }}</div>
       </td>
-      <td style="border:none; padding:0; text-align:right; vertical-align:top;">
-        <div style="font-size:32px;color:#e5e7eb;font-weight:bold;line-height:1;">INVOICE</div>
-        <div style="font-size:18px;font-weight:bold;color:#1f2937;margin-top:4px;">{{ invoice.invoice_number }}</div>
-        <div class="status-badge" style="margin-top:8px;">{{ invoice.status }}</div>
+      <td style="vertical-align:top;text-align:right;padding:0;border:none;">
+        <div style="font-size:28px;font-weight:800;color:#ede9fe;letter-spacing:2px;">INVOICE</div>
+        <div style="font-size:16px;font-weight:700;color:#1a1a2e;margin-top:4px;">{{ invoice.invoice_number }}</div>
+        <div style="margin-top:8px;">
+          <span style="display:inline-block;padding:3px 12px;border-radius:20px;font-size:10px;font-weight:700;
+            {% if invoice.status == 'Paid' %}background:#f0fdf4;color:#16a34a;
+            {% elif invoice.status == 'Overdue' %}background:#fef2f2;color:#dc2626;
+            {% elif invoice.status == 'Unpaid' %}background:#fffbeb;color:#d97706;
+            {% else %}background:#f5f3fa;color:#8b8b9e;{% endif %}">{{ invoice.status }}</span>
+        </div>
       </td>
     </tr>
   </table>
 
   <!-- Bill To + Dates -->
-  <div class="info-box">
-    <table style="width:100%; margin:0; border:none;">
-      <tr>
-        <td style="border:none; padding:0; width:55%; vertical-align:top;">
-          <div class="label">Bill To</div>
-          <div style="font-weight:bold;font-size:14px;color:#1f2937;">{{ invoice.client_name }}</div>
-          {% if invoice.client_email %}<div style="color:#6b7280;margin-top:3px;font-size:12px;">{{ invoice.client_email }}</div>{% endif %}
-          {% if invoice.client_address %}<div style="color:#6b7280;margin-top:3px;font-size:12px;">{{ invoice.client_address }}</div>{% endif %}
-        </td>
-        <td style="border:none; padding:0; text-align:right; vertical-align:top;">
-          <div class="label">Invoice Dates</div>
-          <div style="font-size:12px;margin-top:2px;">Issued: <strong>{{ invoice.issue_date.strftime('%d %b %Y') }}</strong></div>
-          <div style="font-size:12px;margin-top:3px;">Due: <strong style="color:#6c47ff;">{{ invoice.due_date.strftime('%d %b %Y') }}</strong></div>
-        </td>
-      </tr>
-    </table>
-  </div>
+  <table style="margin-bottom:28px;background:#faf8ff;border-radius:8px;">
+    <tr>
+      <td style="padding:18px 20px;vertical-align:top;width:55%;border:none;">
+        <div class="label">Bill To</div>
+        <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{{ invoice.client_name }}</div>
+        {% if invoice.client_email %}<div style="font-size:12px;color:#8b8b9e;margin-top:3px;">{{ invoice.client_email }}</div>{% endif %}
+        {% if invoice.client_address %}<div style="font-size:12px;color:#8b8b9e;margin-top:3px;">{{ invoice.client_address }}</div>{% endif %}
+      </td>
+      <td style="padding:18px 20px;vertical-align:top;text-align:right;border:none;">
+        <div class="label">Invoice Dates</div>
+        <div style="font-size:12px;color:#8b8b9e;margin-top:4px;">Issued: <strong style="color:#1a1a2e;">{{ invoice.issue_date.strftime('%d %b %Y') }}</strong></div>
+        <div style="font-size:12px;color:#8b8b9e;margin-top:4px;">Due: <strong style="color:#7c3aed;">{{ invoice.due_date.strftime('%d %b %Y') }}</strong></div>
+      </td>
+    </tr>
+  </table>
 
   <!-- Line Items -->
-  <table>
+  <table style="margin-bottom:24px;">
     <thead>
       <tr>
-        <th style="border-radius:6px 0 0 6px;">Description</th>
-        <th class="text-center">Qty</th>
-        <th class="text-right">Unit Price</th>
-        <th class="text-right" style="border-radius:0 6px 6px 0;">Amount</th>
+        <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#8b8b9e;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #ede9fe;">Description</th>
+        <th style="padding:10px 14px;text-align:center;font-size:10px;font-weight:700;color:#8b8b9e;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #ede9fe;">Qty</th>
+        <th style="padding:10px 14px;text-align:right;font-size:10px;font-weight:700;color:#8b8b9e;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #ede9fe;">Unit Price</th>
+        <th style="padding:10px 14px;text-align:right;font-size:10px;font-weight:700;color:#8b8b9e;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #ede9fe;">Amount</th>
       </tr>
     </thead>
     <tbody>
       {% for item in invoice.items %}
-      <tr style="{% if loop.index % 2 == 0 %}background:#fafafa;{% endif %}">
-        <td>{{ item.description }}</td>
-        <td class="text-center">{{ item.quantity }}</td>
-        <td class="text-right">RM {{ "%.2f"|format(item.unit_price) }}</td>
-        <td class="text-right" style="font-weight:500;">RM {{ "%.2f"|format(item.amount) }}</td>
+      <tr>
+        <td style="padding:12px 14px;border-bottom:1px solid #f5f3fa;color:#1a1a2e;">{{ item.description }}</td>
+        <td class="text-center" style="padding:12px 14px;border-bottom:1px solid #f5f3fa;color:#8b8b9e;">{{ item.quantity }}</td>
+        <td class="text-right" style="padding:12px 14px;border-bottom:1px solid #f5f3fa;color:#8b8b9e;">RM {{ "%.2f"|format(item.unit_price) }}</td>
+        <td class="text-right" style="padding:12px 14px;border-bottom:1px solid #f5f3fa;font-weight:600;color:#1a1a2e;">RM {{ "%.2f"|format(item.amount) }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 
   <!-- Totals -->
-  <table class="totals-table">
+  <table style="width:240px;float:right;margin-top:8px;">
     <tr>
-      <td style="color:#6b7280;font-size:12px;">Subtotal</td>
-      <td class="text-right" style="font-size:12px;">RM {{ "%.2f"|format(invoice.subtotal) }}</td>
+      <td style="padding:5px 0;font-size:12px;color:#8b8b9e;border:none;">Subtotal</td>
+      <td class="text-right" style="padding:5px 0;font-size:12px;color:#1a1a2e;border:none;">RM {{ "%.2f"|format(invoice.subtotal) }}</td>
     </tr>
     {% if invoice.tax_percent > 0 %}
     <tr>
-      <td style="color:#6b7280;font-size:12px;">Tax ({{ invoice.tax_percent }}%)</td>
-      <td class="text-right" style="font-size:12px;">RM {{ "%.2f"|format(invoice.tax_amount) }}</td>
+      <td style="padding:5px 0;font-size:12px;color:#8b8b9e;border:none;">Tax ({{ invoice.tax_percent }}%)</td>
+      <td class="text-right" style="padding:5px 0;font-size:12px;color:#1a1a2e;border:none;">RM {{ "%.2f"|format(invoice.tax_amount) }}</td>
     </tr>
     {% endif %}
-    <tr class="total-final">
-      <td>Total Due</td>
-      <td class="text-right total-amount">RM {{ "%.2f"|format(invoice.total) }}</td>
+    <tr>
+      <td style="padding:12px 0 5px;font-size:14px;font-weight:700;color:#1a1a2e;border-top:2px solid #7c3aed;">Total Due</td>
+      <td class="text-right" style="padding:12px 0 5px;font-size:14px;font-weight:700;color:#7c3aed;border-top:2px solid #7c3aed;">RM {{ "%.2f"|format(invoice.total) }}</td>
     </tr>
   </table>
-  <div class="clearfix"></div>
+  <div style="clear:both;"></div>
 
   {% if invoice.notes %}
-  <div class="notes-box">
-    <div class="label" style="color:#6c47ff;">Notes</div>
-    <div style="margin-top:4px;font-size:12px;color:#4b5563;">{{ invoice.notes }}</div>
+  <div style="margin-top:36px;padding:16px 18px;background:#faf8ff;border-left:3px solid #7c3aed;border-radius:0 6px 6px 0;">
+    <div class="label" style="color:#7c3aed;">Notes</div>
+    <div style="font-size:12px;color:#6b6b80;margin-top:4px;line-height:1.6;">{{ invoice.notes }}</div>
   </div>
   {% endif %}
 
-  <div class="footer">
-    <strong style="color:#6c47ff;">Billify</strong> — Thank you for your business!
+  <div style="margin-top:48px;text-align:center;border-top:1px solid #ede9fe;padding-top:16px;">
+    <span style="font-size:12px;font-weight:700;color:#7c3aed;">Billify</span>
+    <span style="font-size:11px;color:#8b8b9e;"> — Thank you for your business</span>
   </div>
+
 </body>
 </html>
