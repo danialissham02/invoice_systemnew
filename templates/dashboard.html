@@ -73,11 +73,15 @@
 
   <!-- Revenue Forecast Chart -->
   <div class="card" style="padding:24px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
       <div>
         <div style="font-size:15px;font-weight:600;color:var(--text);">Revenue overview</div>
         <div style="font-size:12px;color:var(--muted);margin-top:2px;">Monthly trend with forecast</div>
       </div>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:14px;font-size:11px;color:var(--muted);">
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:14px;height:2px;background:#7c3aed;border-radius:1px;"></span>Actual revenue</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:14px;height:0;border-top:2px dashed #a78bfa;"></span>Forecast</span>
     </div>
     <canvas id="forecastChart" height="85"></canvas>
   </div>
@@ -167,58 +171,32 @@ fetch('/api/revenue-forecast')
   .then(r => r.json())
   .then(data => {
     if (!data.labels || !data.labels.length) return;
-    const labels = [...data.labels, data.forecast_label + ' (forecast)'];
-    const actual = [...data.actual, null];
-    const forecastBar = new Array(data.actual.length).fill(null);
-    forecastBar.push(data.forecast_value);
+    const labels = [...data.labels, data.forecast_label];
+    const allData = [...data.actual, data.forecast_value];
+    const lastIdx = labels.length - 1;
 
     new Chart(document.getElementById('forecastChart'), {
-      type: 'bar',
+      type: 'line',
       data: {
         labels: labels,
-        datasets: [
-          {
-            type: 'bar',
-            label: 'Revenue',
-            data: actual,
-            backgroundColor: actual.map((_, i) => i === actual.length - 2 ? '#7c3aed' : '#ede9fe'),
-            borderRadius: 6,
-            borderSkipped: false,
-            barPercentage: 0.5,
-            categoryPercentage: 0.7,
+        datasets: [{
+          label: 'Revenue',
+          data: allData,
+          borderColor: '#7c3aed',
+          backgroundColor: 'rgba(124,58,237,0.06)',
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: allData.map((_, i) => i === lastIdx ? '#a78bfa' : '#7c3aed'),
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointHoverRadius: 6,
+          segment: {
+            borderDash: ctx => ctx.p1DataIndex === lastIdx ? [5, 4] : [],
+            borderColor: ctx => ctx.p1DataIndex === lastIdx ? '#a78bfa' : '#7c3aed',
           },
-          {
-            type: 'bar',
-            label: 'Forecast',
-            data: forecastBar,
-            backgroundColor: 'rgba(124,58,237,0.12)',
-            borderColor: '#a78bfa',
-            borderWidth: 1.5,
-            borderRadius: 6,
-            borderSkipped: false,
-            barPercentage: 0.5,
-            categoryPercentage: 0.7,
-          },
-          {
-            type: 'line',
-            label: 'Trend',
-            data: [...data.actual, data.forecast_value],
-            borderColor: '#7c3aed',
-            backgroundColor: 'rgba(124,58,237,0.04)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4,
-            pointRadius: [...data.actual.map(() => 3), 5],
-            pointBackgroundColor: [...data.actual.map(() => '#7c3aed'), '#fff'],
-            pointBorderColor: [...data.actual.map(() => '#fff'), '#7c3aed'],
-            pointBorderWidth: 2,
-            pointStyle: [...data.actual.map(() => 'circle'), 'circle'],
-            pointHoverRadius: 6,
-            segment: {
-              borderDash: ctx => ctx.p1DataIndex === labels.length - 1 ? [5, 4] : [],
-            },
-          }
-        ]
+        }]
       },
       options: {
         responsive: true,
@@ -233,13 +211,10 @@ fetch('/api/revenue-forecast')
             displayColors: false,
             callbacks: {
               title: ctx => {
-                const label = ctx[0].label || '';
-                return label.includes('forecast') ? 'Predicted — ' + label.replace(' (forecast)', '') : label;
+                const i = ctx[0].dataIndex;
+                return i === lastIdx ? labels[i] + ' (predicted)' : labels[i];
               },
-              label: c => {
-                const val = c.parsed.y || 0;
-                return 'RM ' + val.toLocaleString('en-MY', {minimumFractionDigits: 2});
-              }
+              label: c => 'RM ' + (c.parsed.y || 0).toLocaleString('en-MY', {minimumFractionDigits: 2})
             }
           }
         },
@@ -251,17 +226,14 @@ fetch('/api/revenue-forecast')
               color: '#8b8b9e',
               font: { size: 11 },
               maxTicksLimit: 5,
-              callback: v => {
-                if (v >= 1000) return 'RM ' + (v / 1000).toFixed(v % 1000 === 0 ? 0 : 1) + 'k';
-                return 'RM ' + v;
-              }
+              callback: v => v >= 1000 ? 'RM ' + (v/1000).toFixed(v%1000===0?0:1) + 'k' : 'RM ' + v
             }
           },
           x: {
             grid: { display: false },
             ticks: {
-              color: ctx => ctx.index === labels.length - 1 ? '#7c3aed' : '#8b8b9e',
-              font: ctx => ({ size: 11, weight: ctx.index === labels.length - 1 ? '600' : '400' })
+              color: ctx => ctx.index === lastIdx ? '#a78bfa' : '#8b8b9e',
+              font: { size: 11 }
             }
           }
         }
