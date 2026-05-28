@@ -1,79 +1,84 @@
-{% extends 'base.html' %}
-{% block title %}Create Account — Billify{% endblock %}
-{% block auth_content %}
-<div class="min-h-screen flex" style="background:#0f0f13;">
-  <div class="hidden lg:flex flex-col justify-between w-1/2 p-12" style="background:linear-gradient(135deg,#1a1025 0%,#0f0f13 100%);">
-    <div class="flex items-center gap-3">
-      <div style="width:42px;height:42px;background:linear-gradient(135deg,#6c47ff,#9b6dff);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(108,71,255,0.4);">
-        <span class="font-display font-700 text-white" style="font-size:16px;letter-spacing:-0.5px;">BL</span>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account — Billify</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+    body { min-height: 100vh; background: #07070f; position: relative; }
+    .gradient-bg { position: fixed; inset: 0; background: radial-gradient(circle at 20% 50%, rgba(139,92,246,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(99,102,241,0.15) 0%, transparent 50%), radial-gradient(circle at 40% 20%, rgba(168,85,247,0.1) 0%, transparent 50%); }
+    .orb { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.4; animation: float 20s infinite ease-in-out; }
+    .orb-1 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(139,92,246,0.4), transparent); top: -100px; left: -100px; }
+    .orb-2 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(99,102,241,0.3), transparent); bottom: -50px; right: -50px; animation-delay: 7s; }
+    @keyframes float { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(30px, -30px) scale(1.1); } 66% { transform: translate(-30px, 30px) scale(0.9); } }
+    .container { position: relative; z-index: 10; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .register-wrapper { width: 100%; max-width: 480px; }
+    .logo { text-align: center; margin-bottom: 20px; }
+    .logo-text { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(135deg, #fff 40%, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; filter: drop-shadow(0 0 20px rgba(139,92,246,0.5)); animation: pulse 3s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { filter: drop-shadow(0 0 20px rgba(139,92,246,0.5)); } 50% { filter: drop-shadow(0 0 36px rgba(139,92,246,0.8)); } }
+    .form-card { background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 28px 30px; box-shadow: 0 24px 48px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1); animation: slideUp 0.6s ease; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .form-title { font-size: 22px; font-weight: 700; color: white; margin-bottom: 3px; text-align: center; }
+    .form-subtitle { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 0; text-align: center; }
+    .glow-divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(139,92,246,0.5), transparent); margin: 16px 0; }
+    .field-label { display: block; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+    .field-input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); border-radius: 10px; color: white; font-size: 13px; outline: none; transition: all 0.3s ease; margin-bottom: 12px; }
+    .field-input::placeholder { color: rgba(255,255,255,0.25); }
+    .field-input:focus { border-color: rgba(139,92,246,0.6); background: rgba(139,92,246,0.06); box-shadow: 0 0 0 3px rgba(139,92,246,0.1); }
+    .btn-submit { width: 100%; padding: 12px; background: linear-gradient(135deg, #8B5CF6, #6366F1); color: white; font-size: 14px; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(139,92,246,0.4); position: relative; overflow: hidden; margin-top: 2px; }
+    .btn-submit::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent); transform: translateX(-100%); transition: transform 0.5s ease; }
+    .btn-submit:hover::after { transform: translateX(100%); }
+    .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(139,92,246,0.5); }
+    .form-footer { text-align: center; margin-top: 16px; font-size: 13px; color: rgba(255,255,255,0.3); }
+    .form-footer a { color: #a78bfa; text-decoration: none; font-weight: 600; transition: color 0.2s; }
+    .form-footer a:hover { color: #c084fc; }
+    .copyright { text-align: center; margin-top: 16px; color: rgba(255,255,255,0.15); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="gradient-bg"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <div class="container">
+    <div class="register-wrapper">
+      <div class="logo">
+        <span class="logo-text">Billify</span>
       </div>
-      <span class="font-display font-800 text-white text-xl" style="letter-spacing:-0.5px;">Billify</span>
-    </div>
-    <div>
-      <div style="font-size:42px;font-weight:800;color:white;line-height:1.1;letter-spacing:-1px;" class="font-display mb-6">
-        Start your<br><span style="color:#6c47ff;">free account.</span>
+
+      <div class="form-card">
+        <div class="form-title">Create account</div>
+        <div class="form-subtitle">Get started with Billify for free</div>
+
+        <div class="glow-divider"></div>
+
+        <form method="POST">
+          <label class="field-label">Full Name</label>
+          <input class="field-input" type="text" name="name" placeholder="Ahmad bin Ali" required autofocus>
+
+          <label class="field-label">Email Address</label>
+          <input class="field-input" type="email" name="email" placeholder="you@company.com" required>
+
+          <label class="field-label">Company Name <span style="color:rgba(255,255,255,0.25);font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
+          <input class="field-input" type="text" name="company" placeholder="My Business Sdn Bhd">
+
+          <label class="field-label">Password</label>
+          <input class="field-input" type="password" name="password" placeholder="Min 8 characters" minlength="8" required>
+
+          <label class="field-label">Confirm Password</label>
+          <input class="field-input" type="password" name="confirm_password" placeholder="Repeat password" minlength="8" required>
+
+          <button type="submit" class="btn-submit">Create Account</button>
+        </form>
+
+        <div class="form-footer">
+          Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
+        </div>
       </div>
-      <p style="color:#72727a;font-size:15px;line-height:1.7;">Join businesses already using Billify to streamline their invoicing process.</p>
+
+      <div class="copyright">© 2026 Billify. Built for SMEs.</div>
     </div>
-    <div style="color:#3a3a42;font-size:12px;">© 2024 Billify. Built for SMEs.</div>
   </div>
-
-  <div class="flex-1 flex items-center justify-center px-6 py-12">
-    <div style="width:100%;max-width:400px;">
-      <div class="lg:hidden flex items-center gap-2 mb-10">
-        <div style="width:34px;height:34px;background:linear-gradient(135deg,#6c47ff,#9b6dff);border-radius:9px;display:flex;align-items:center;justify-content:center;">
-          <span class="font-display font-700 text-white" style="font-size:13px;">BL</span>
-        </div>
-        <span class="font-display font-700 text-white text-lg">Billify</span>
-      </div>
-
-      <div class="fade-up fade-up-1">
-        <h1 class="font-display font-700 text-white mb-2" style="font-size:28px;letter-spacing:-0.5px;">Create account</h1>
-        <p style="color:#72727a;font-size:14px;margin-bottom:32px;">Get started with Billify for free</p>
-      </div>
-
-      <form method="POST" class="space-y-4 fade-up fade-up-2">
-        <div>
-          <label style="font-size:13px;font-weight:500;color:#a0a0a8;display:block;margin-bottom:8px;">Full Name</label>
-          <input type="text" name="name" required placeholder="Ahmad bin Ali"
-            style="width:100%;background:#1e1e24;border:1px solid #2a2a32;border-radius:10px;padding:12px 16px;color:white;font-size:14px;outline:none;transition:border 0.15s;"
-            onfocus="this.style.borderColor='#6c47ff'" onblur="this.style.borderColor='#2a2a32'" />
-        </div>
-        <div>
-          <label style="font-size:13px;font-weight:500;color:#a0a0a8;display:block;margin-bottom:8px;">Email address</label>
-          <input type="email" name="email" required placeholder="you@company.com"
-            style="width:100%;background:#1e1e24;border:1px solid #2a2a32;border-radius:10px;padding:12px 16px;color:white;font-size:14px;outline:none;transition:border 0.15s;"
-            onfocus="this.style.borderColor='#6c47ff'" onblur="this.style.borderColor='#2a2a32'" />
-        </div>
-        <div>
-          <label style="font-size:13px;font-weight:500;color:#a0a0a8;display:block;margin-bottom:8px;">Company Name <span style="color:#4a4a52;">(optional)</span></label>
-          <input type="text" name="company" placeholder="My Business Sdn Bhd"
-            style="width:100%;background:#1e1e24;border:1px solid #2a2a32;border-radius:10px;padding:12px 16px;color:white;font-size:14px;outline:none;transition:border 0.15s;"
-            onfocus="this.style.borderColor='#6c47ff'" onblur="this.style.borderColor='#2a2a32'" />
-        </div>
-        <div>
-          <label style="font-size:13px;font-weight:500;color:#a0a0a8;display:block;margin-bottom:8px;">Password</label>
-          <input type="password" name="password" required placeholder="Min 8 characters"
-            style="width:100%;background:#1e1e24;border:1px solid #2a2a32;border-radius:10px;padding:12px 16px;color:white;font-size:14px;outline:none;transition:border 0.15s;"
-            onfocus="this.style.borderColor='#6c47ff'" onblur="this.style.borderColor='#2a2a32'" />
-        </div>
-        <div>
-          <label style="font-size:13px;font-weight:500;color:#a0a0a8;display:block;margin-bottom:8px;">Confirm Password</label>
-          <input type="password" name="confirm_password" required placeholder="Repeat password"
-            style="width:100%;background:#1e1e24;border:1px solid #2a2a32;border-radius:10px;padding:12px 16px;color:white;font-size:14px;outline:none;transition:border 0.15s;"
-            onfocus="this.style.borderColor='#6c47ff'" onblur="this.style.borderColor='#2a2a32'" />
-        </div>
-        <button type="submit" style="width:100%;background:#6c47ff;color:white;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;margin-top:8px;"
-          onmouseover="this.style.background='#5538e0'" onmouseout="this.style.background='#6c47ff'">
-          Create Account
-        </button>
-      </form>
-
-      <p style="text-align:center;font-size:13px;color:#72727a;margin-top:24px;" class="fade-up fade-up-3">
-        Already have an account?
-        <a href="{{ url_for('login') }}" style="color:#6c47ff;font-weight:500;text-decoration:none;">Sign in</a>
-      </p>
-    </div>
-  </div>
-</div>
-{% endblock %}
+</body>
+</html>
