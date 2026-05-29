@@ -760,10 +760,20 @@ def revenue_forecast():
     labels = [m[0] for m in sorted_months]
     values = [round(m[1], 2) for m in sorted_months]
 
-    # Linear regression using numpy
-    x = np.arange(len(values))
-    coeffs = np.polyfit(x, values, 1)
-    forecast_value = max(0, round(float(np.polyval(coeffs, len(values))), 2))
+    # Holt's Double Exponential Smoothing
+    # Captures both level and trend, giving more weight to recent data
+    alpha = 0.6  # Level smoothing (higher = more reactive to recent data)
+    beta = 0.3   # Trend smoothing (higher = faster trend adaptation)
+
+    level = values[0]
+    trend = values[1] - values[0]
+
+    for i in range(1, len(values)):
+        prev_level = level
+        level = alpha * values[i] + (1 - alpha) * (level + trend)
+        trend = beta * (level - prev_level) + (1 - beta) * trend
+
+    forecast_value = max(0, round(level + trend, 2))
 
     # Next month label
     last_date = datetime.strptime(labels[-1], '%b %Y')
