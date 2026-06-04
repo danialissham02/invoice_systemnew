@@ -1,129 +1,116 @@
-#  Billify — Invoice Management System
+# Billify — Invoice Management System for Malaysian SMEs
 
-An invoice management web app built with **Flask + SQLite + Tailwind CSS**.
+Billify is a web-based invoice management and business intelligence platform built for small and medium enterprises (SMEs) in Malaysia. It replaces manual invoicing processes with a digital solution that includes automated insights, revenue forecasting, and professional PDF generation.
 
----
+## Features
 
-## 🚀 Quick Start (Windows + VSCode)
+- **Invoice Management (CRUD)** — Create, view, edit, and delete invoices with dynamic line items and real-time total calculation
+- **PDF Generation** — Professional invoice PDFs generated server-side using ReportLab
+- **Email Sending** — Send invoices directly to clients via Resend API with PDF attachment
+- **CSV Bulk Import** — Import multiple invoices at once from CSV files with drag-and-drop upload
+- **Auto-Overdue Detection** — Automatically updates invoice status from Unpaid to Overdue when due date passes
+- **Smart Business Insights** — Rule-based AI engine generating 5 actionable insights (revenue trend, payment health, top client, overdue alerts, service popularity) with zero external API costs
+- **Revenue Forecasting** — Predicts next month's revenue using Holt's Double Exponential Smoothing
+- **Dashboard Analytics** — Current month KPI cards, revenue trend chart, status doughnut chart, recent invoices
+- **Monthly Reporting** — All-time KPIs, insights grid, and monthly invoice summary table
+- **Admin Panel** — User management, feedback monitoring, system health metrics
+- **User Feedback System** — Star ratings, category selection, and message collection
+- **Role-Based Access** — Regular user and admin roles with protected routes
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| Backend | Python Flask |
+| Database | PostgreSQL (production), SQLite (development) |
+| Frontend | Custom CSS, CSS Variables, Inter Font |
+| Charts | Chart.js |
+| PDF Generation | ReportLab |
+| Email | Resend API |
+| Forecasting | Holt's Double Exponential Smoothing (Python) |
+| Insights | Rule-based Python (collections.defaultdict, Counter) |
+| Hosting | Render (cloud) |
+
+## Setup
 
 ### Prerequisites
-Make sure you have **Python 3.9+** installed.  
-Download from https://www.python.org/downloads/  
-✅ During install, tick **"Add Python to PATH"**
+- Python 3.8+
+- pip
 
-### Open in VSCode
-1. Extract the ZIP into a folder, e.g. `C:\Projects\invoice_system`
-2. Open **VSCode** → File → Open Folder → select `invoice_system`
-
-### Set up the project
-Open the terminal in VSCode (`` Ctrl + ` ``) and run these commands one by one:
+### Installation
 
 ```bash
-# Create a virtual environment
-python -m venv venv
-
-# Activate it (Windows)
-venv\Scripts\activate
-
-# Install dependencies
+git clone https://github.com/YOUR-USERNAME/YOUR-REPO.git
+cd invoice_system
 pip install -r requirements.txt
+```
 
-# Run the app
+### Environment Variables
+
+Create a `.env` file or set these in your environment:
+
+```
+SECRET_KEY=your-secret-key
+DATABASE_URL=your-postgresql-url
+RESEND_API_KEY=your-resend-api-key
+```
+
+### Run Locally
+
+```bash
 python app.py
 ```
 
-### Open in browser
-Go to: **http://127.0.0.1:5000**
+Visit `http://localhost:5000` in your browser.
 
-Register a new account and start creating invoices! 🎉
+### Deploy on Render
 
----
+1. Push code to GitHub
+2. Create a new Web Service on Render connected to your repo
+3. Set environment variables (SECRET_KEY, DATABASE_URL, RESEND_API_KEY)
+4. Deploy
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 invoice_system/
-├── app.py                  ← Main Flask app (routes, models, logic)
-├── requirements.txt        ← Python packages needed
-├── README.md               ← This file
-├── instance/
-│   └── invoices.db         ← SQLite database (auto-created on first run)
-└── templates/
-    ├── base.html           ← Shared layout (sidebar, navigation)
-    ├── login.html          ← Login page
-    ├── register.html       ← Register page
-    ├── dashboard.html      ← Dashboard with charts
-    ├── invoices.html       ← Invoice list with search & filter
-    ├── invoice_form.html   ← Create / Edit invoice form
-    └── invoice_view.html   ← View single invoice
+├── app.py                  # Main application (routes, models, logic)
+├── requirements.txt        # Python dependencies
+├── templates/
+│   ├── base.html           # Main layout (dark sidebar + light content)
+│   ├── login.html          # Standalone dark login page
+│   ├── register.html       # Standalone dark register page
+│   ├── dashboard.html      # Dashboard with KPIs, chart, insights
+│   ├── invoices.html       # Invoice list with search and filter
+│   ├── invoice_form.html   # Create/edit invoice form
+│   ├── invoice_view.html   # Invoice preview with status update
+│   ├── reports.html        # Monthly reporting with insights grid
+│   ├── import_csv.html     # CSV bulk import interface
+│   ├── feedback.html       # User feedback and rating page
+│   └── admin/
+│       ├── base.html       # Admin panel layout
+│       ├── dashboard.html  # Admin overview
+│       ├── users.html      # User management
+│       └── feedback.html   # Feedback management
+└── static/                 # Static assets (if any)
 ```
 
----
+## Database Schema
 
-## ✨ Features
-
-| Feature | Details |
-|---|---|
-| **Auth** | Register + Login with hashed passwords |
-| **Dashboard** | KPI cards (revenue, outstanding, overdue) + bar chart + doughnut chart |
-| **Invoice CRUD** | Create, view, edit, delete invoices |
-| **Line Items** | Dynamic add/remove rows, auto-calculated totals |
-| **Tax** | Configurable tax % per invoice |
-| **Status** | Draft / Unpaid / Paid / Overdue with one-click update |
-| **Search & Filter** | Filter by status, search by client name or invoice number |
-| **Auto-Overdue** | Unpaid invoices past due date auto-update to Overdue |
-| **Currency** | Malaysian Ringgit (RM) — easy to change in templates |
-
----
-
-## 🛠 Tech Stack
-
-- **Flask** (Python) — simplest web framework for beginners
-- **SQLite** — built into Python, zero installation needed
-- **Tailwind CSS** — loaded via CDN, no build tools needed
-- **Chart.js** — for dashboard charts
-- **Flask-Login** — session management
-- **Flask-SQLAlchemy** — database ORM
-- **Werkzeug** — password hashing
-
----
-
-## 🌍 Deployment
-
-### Option A — Render.com (Recommended for beginners)
-1. Push your code to GitHub (free account)
-2. Go to https://render.com → New → Web Service
-3. Connect your GitHub repo
-4. Set:
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `gunicorn app:app`
-5. Add to `requirements.txt`: `gunicorn`
-6. Click Deploy ✅
+| Table | Description |
+|-------|-------------|
+| User | User accounts with name, email, password (hashed), company, admin flag |
+| Invoice | Invoice records with client info, dates, status, totals, linked to User |
+| InvoiceItem | Line items with description, quantity, unit price, linked to Invoice |
+| Feedback | User feedback with star rating, category, message, linked to User |
 
 
+## Author
 
----
+**Muhammad Danial Bin Issham**
 
-## 🔧 Common Issues
+Final Year Project — Universiti Malaysia Pahang Al-Sultan Abdullah (UMPSA)
 
-**"python is not recognized"**  
-→ Reinstall Python and tick "Add to PATH"
+## License
 
-**"venv\Scripts\activate is not recognized"**  
-→ Run: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
-
-**Port already in use**  
-→ Change `app.run(debug=True)` to `app.run(debug=True, port=5001)`
-
----
-
-## 📝 Customization Tips
-
-- **Change currency**: Search for `RM` in all templates and replace with your currency symbol
-- **Add logo**: Replace the `⚡ InvoiceFlow` text in `base.html` and `invoice_view.html`
-- **Change colors**: Edit `bg-blue-600` classes in templates to any Tailwind color
-- **Add fields**: Add columns in `app.py` models and corresponding form fields in templates
-
----
-
-Built for SMEs transitioning from manual to digital invoicing. 🚀
+This project was developed as part of a final year academic project.
