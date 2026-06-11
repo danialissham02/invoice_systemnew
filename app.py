@@ -857,7 +857,7 @@ def import_csv():
         success = 0
         errors = []
 
-         # Pre-compute starting invoice number ONCE to avoid 500 database queries
+        # Pre-compute starting invoice number ONCE to avoid 500 database queries
         year = datetime.now().year
         current_max = Invoice.query.count()
         next_number = current_max + 1
@@ -923,7 +923,6 @@ def import_csv():
                 )
                 db.session.add(item)
                 success += 1
-                next_number += 1
 
                 # Batch commit every 50 rows for speed
                 if success % 50 == 0:
