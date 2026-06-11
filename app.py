@@ -857,6 +857,11 @@ def import_csv():
         success = 0
         errors = []
 
+         # Pre-compute starting invoice number ONCE to avoid 500 database queries
+        year = datetime.now().year
+        current_max = Invoice.query.count()
+        next_number = current_max + 1
+
         for i, row in enumerate(reader, start=2):
             try:
                 # Clean keys
@@ -891,7 +896,7 @@ def import_csv():
                 total = round(subtotal + tax_amount, 2)
 
                 inv = Invoice(
-                    invoice_number=generate_invoice_number(current_user.id),
+                    invoice_number=f"INV-{year}-{next_number:04d}",
                     client_name=client_name,
                     client_email=row.get('client_email', '').strip(),
                     client_address=row.get('client_address', '').strip(),
@@ -918,6 +923,7 @@ def import_csv():
                 )
                 db.session.add(item)
                 success += 1
+                next_number += 1
 
                 # Batch commit every 50 rows for speed
                 if success % 50 == 0:
