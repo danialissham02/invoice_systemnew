@@ -760,20 +760,10 @@ def revenue_forecast():
     labels = [m[0] for m in sorted_months]
     values = [round(m[1], 2) for m in sorted_months]
 
-    # Holt's Double Exponential Smoothing
-    # Captures both level and trend, giving more weight to recent data
-    alpha = 0.6  # Level smoothing (higher = more reactive to recent data)
-    beta = 0.3   # Trend smoothing (higher = faster trend adaptation)
-
-    level = values[0]
-    trend = values[1] - values[0]
-
-    for i in range(1, len(values)):
-        prev_level = level
-        level = alpha * values[i] + (1 - alpha) * (level + trend)
-        trend = beta * (level - prev_level) + (1 - beta) * trend
-
-    forecast_value = max(0, round(level + trend, 2))
+    # Linear regression using numpy
+    x = np.arange(len(values))
+    coeffs = np.polyfit(x, values, 1)
+    forecast_value = max(0, round(float(np.polyval(coeffs, len(values))), 2))
 
     # Next month label
     last_date = datetime.strptime(labels[-1], '%b %Y')
@@ -927,12 +917,22 @@ def import_csv():
                     amount=amount
                 )
                 db.session.add(item)
-                db.session.commit()
                 success += 1
+
+                # Batch commit every 50 rows for speed
+                if success % 50 == 0:
+                    db.session.commit()
 
             except Exception as e:
                 db.session.rollback()
                 errors.append(f'Row {i}: {str(e)}')
+
+        # Final commit for remaining rows
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            errors.append(f'Final commit error: {str(e)}')
 
         if success:
             flash(f'Successfully imported {success} invoice(s)!', 'success')
