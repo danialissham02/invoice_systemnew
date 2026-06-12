@@ -857,10 +857,20 @@ def import_csv():
         success = 0
         errors = []
 
-        # Pre-compute starting number ONCE
+        # Find the highest existing invoice number to avoid duplicates
         year = datetime.now().year
-        existing_count = Invoice.query.count()
-        next_num = existing_count + 1
+        from sqlalchemy import func
+        last_invoice = Invoice.query.filter(
+            Invoice.invoice_number.like(f'INV-{year}-%')
+        ).order_by(Invoice.invoice_number.desc()).first()
+
+        if last_invoice:
+            try:
+                next_num = int(last_invoice.invoice_number.split('-')[-1]) + 1
+            except:
+                next_num = Invoice.query.count() + 1
+        else:
+            next_num = 1
 
         for i, row in enumerate(reader, start=2):
             try:
@@ -895,8 +905,12 @@ def import_csv():
                 tax_amount = round(subtotal * tax_percent / 100, 2)
                 total = round(subtotal + tax_amount, 2)
 
+                # Use in-memory counter (fast, no DB query per row)
+                invoice_num = f"INV-{year}-{next_num:04d}"
+                next_num += 1
+
                 inv = Invoice(
-                    invoice_number=f"INV-{year}-{next_num:04d}",
+                    invoice_number=invoice_num,
                     client_name=client_name,
                     client_email=row.get('client_email', '').strip(),
                     client_address=row.get('client_address', '').strip(),
@@ -912,7 +926,6 @@ def import_csv():
                 )
                 db.session.add(inv)
                 db.session.flush()
-                next_num += 1
 
                 description = row.get('item_description', 'Service').strip() or 'Service'
                 item = InvoiceItem(
@@ -933,7 +946,7 @@ def import_csv():
                 db.session.rollback()
                 errors.append(f'Row {i}: {str(e)}')
 
-        # Final commit for remaining
+        # Final commit
         try:
             db.session.commit()
         except Exception as e:
